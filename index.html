@@ -435,34 +435,46 @@
     <!-- LEFT SIDEBAR -->
     <div id="leftPanel">
       <div id="leftInner">
-        <div class="sectionHeader">Watchlist</div>
-        <div id="groupTabs">
-          <div class="groupTab active" data-group="crypto">Crypto</div>
-          <div class="groupTab" data-group="forex">Forex</div>
-          <div class="groupTab" data-group="stocks">Stocks</div>
+        <div class="sectionHeader sidebarToggle" onclick="toggleSidebar('watchlist')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+          <span>Watchlist</span><span id="watchlistArrow" style="font-size:9px;opacity:0.5">▼</span>
         </div>
-        <div id="watchlistInner"></div>
-        <div id="addRow"><button id="addPairBtn">+ Add pair</button></div>
+        <div id="watchlistGroup">
+          <div id="groupTabs">
+            <div class="groupTab active" data-group="crypto">Crypto</div>
+            <div class="groupTab" data-group="forex">Forex</div>
+            <div class="groupTab" data-group="stocks">Stocks</div>
+          </div>
+          <div id="watchlistInner"></div>
+          <div id="addRow"><button id="addPairBtn">+ Add pair</button></div>
+        </div>
 
-        <div class="sectionHeader" style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="sectionHeader sidebarToggle" onclick="toggleSidebar('chevTrades')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
           <span>Trading Logs</span>
-          <button id="resetBalance" title="Reset Dexter's paper balance to $10,000 and clear all trades" style="background:rgba(242,54,69,0.12);border:1px solid rgba(242,54,69,0.3);color:#f23645;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:9px;font-family:inherit;">Reset $10k</button>
+          <span style="display:flex;align-items:center;gap:6px">
+            <button id="resetBalance" title="Reset Dexter's paper balance to $10,000 and clear all trades" style="background:rgba(242,54,69,0.12);border:1px solid rgba(242,54,69,0.3);color:#f23645;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:9px;font-family:inherit;" onclick="event.stopPropagation()">Reset $10k</button>
+            <span id="chevTradesArrow" style="font-size:9px;opacity:0.5">▼</span>
+          </span>
         </div>
-        <div id="tradingLogs"><div class="emptyNote">Connecting to Dexter...</div></div>
-
-        <div class="sectionHeader">Chev's Corner</div>
-        <div id="chevsCorner">
-          <div id="chevIdeas"><div class="emptyNote">No pending ideas right now.</div></div>
+        <div id="chevTradesGroup">
+          <div id="tradingLogs"><div class="emptyNote">Connecting to Dexter...</div></div>
         </div>
 
-        <div class="sectionHeader" style="display:flex;align-items:center;justify-content:space-between;">
-          <span>Jane's Trades</span>
-          <span id="janeBalanceLabel" style="font-size:9px;color:#d4af37;font-family:monospace;opacity:0.8"></span>
+        <div class="sectionHeader sidebarToggle" onclick="toggleSidebar('chevCorner')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+          <span>Chev's Corner</span><span id="chevCornerArrow" style="font-size:9px;opacity:0.5">▼</span>
         </div>
-        <div id="janeTradesEl"><div class="emptyNote">Connecting...</div></div>
+        <div id="chevCornerGroup">
+          <div id="chevsCorner">
+            <div id="chevIdeas"><div class="emptyNote">No pending ideas right now.</div></div>
+          </div>
+        </div>
 
-        <div class="sectionHeader">Jane's Corner</div>
-        <div id="janeCornerEl"><div class="emptyNote">No closed Jane trades yet.</div></div>
+        <div class="sectionHeader sidebarToggle" onclick="toggleSidebar('janeTrades')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:6px">Jane's Trades <span id="janeBalanceLabel" style="font-size:9px;color:#d4af37;font-family:monospace;opacity:0.8"></span></span>
+          <span id="janeTradesArrow" style="font-size:9px;opacity:0.5">▼</span>
+        </div>
+        <div id="janeTradesGroup">
+          <div id="janeTradesEl"><div class="emptyNote">Connecting...</div></div>
+        </div>
       </div>
     </div>
 
@@ -1056,6 +1068,15 @@
 
   function pnlClass(pnl) { return pnl >= 0 ? 'pnl-up' : 'pnl-down'; }
   function fmtPnl(pnl) { return (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2); }
+
+  const _sidebarCollapsed = {};
+  function toggleSidebar(id) {
+    _sidebarCollapsed[id] = !_sidebarCollapsed[id];
+    const group = document.getElementById(id + 'Group');
+    const arrow = document.getElementById(id + 'Arrow');
+    if (group) group.style.display = _sidebarCollapsed[id] ? 'none' : '';
+    if (arrow) arrow.textContent = _sidebarCollapsed[id] ? '▶' : '▼';
+  }
   function moodEmoji(pnl) {
     if (pnl >= 20) return '🥳';
     if (pnl >= 5) return '😄';

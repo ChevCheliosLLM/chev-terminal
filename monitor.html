@@ -451,6 +451,10 @@
     <div class="balance-label" style="color:var(--gold)">Jane Balance</div>
     <div class="balance-amount" id="janeBalanceAmt" style="font-size:22px">—</div>
     <div class="pnl-row">
+      <div class="pnl-label">Open PnL</div>
+      <div class="pnl-value flat" id="janeOpenPnl">—</div>
+    </div>
+    <div class="pnl-row">
       <div class="pnl-label">W / L</div>
       <div class="pnl-value flat" id="janeWinLoss">—</div>
     </div>
@@ -743,6 +747,11 @@ function renderAll() {
   const jw = state.jane_wins || 0;
   const jl = state.jane_losses || 0;
   document.getElementById('janeWinLoss').textContent = `${jw}W / ${jl}L`;
+  const janeOpenTrades = (state.jane_trades || []).filter(t => t.status === 'OPEN');
+  const janeOpenPnlVal = janeOpenTrades.reduce((s, t) => s + (t.live_pnl || 0), 0);
+  const janeOpenPnlEl  = document.getElementById('janeOpenPnl');
+  janeOpenPnlEl.textContent = janeOpenTrades.length ? fmtPnl(janeOpenPnlVal) : '$0.00';
+  janeOpenPnlEl.className   = 'pnl-value ' + pnlClass(janeOpenPnlVal);
 
   // Chev stats
   const wins   = state.wins   || 0;
