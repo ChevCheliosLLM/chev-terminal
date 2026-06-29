@@ -454,6 +454,15 @@
         <div id="chevsCorner">
           <div id="chevIdeas"><div class="emptyNote">No pending ideas right now.</div></div>
         </div>
+
+        <div class="sectionHeader" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Jane's Trades</span>
+          <span id="janeBalanceLabel" style="font-size:9px;color:#d4af37;font-family:monospace;opacity:0.8"></span>
+        </div>
+        <div id="janeTradesEl"><div class="emptyNote">Connecting...</div></div>
+
+        <div class="sectionHeader">Jane's Corner</div>
+        <div id="janeCornerEl"><div class="emptyNote">No closed Jane trades yet.</div></div>
       </div>
     </div>
 
@@ -1035,6 +1044,8 @@
     setInterval(refreshTradingLogs, 5000);
     refreshChevsCorner();
     setInterval(refreshChevsCorner, 30000);
+    refreshJaneTrades();
+    setInterval(refreshJaneTrades, 10000);
   });
 
   /* ============================================================
@@ -1368,6 +1379,64 @@
       renderChevIdeas();
     } catch (e) {
       chevIdeasEl.innerHTML = '<div class="emptyNote">Can\'t reach Dexter for pending ideas.</div>';
+    }
+  }
+
+  /* ============================================================
+     JANE'S TRADES
+     ============================================================ */
+  function renderJaneTrades(data) {
+    const active     = (data.active || []).slice(0, 8);
+    const lastClosed = data.last_closed;
+    const balance    = data.balance;
+
+    if (balance != null) {
+      const lbl = document.getElementById('janeBalanceLabel');
+      if (lbl) lbl.textContent = '$' + balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    let html = '';
+    if (!active.length) {
+      html = '<div class="emptyNote">No active Jane trades.</div>';
+    } else {
+      active.forEach(t => {
+        const pnl = t.live_pnl || 0;
+        const isPending = t.status === 'PENDING';
+        html += `<div class="logRow" style="border-left:2px solid rgba(212,175,55,0.45)">
+          <span class="logMood">${moodEmoji(pnl)}</span>
+          <span class="logPair">${t.pair}</span>
+          <span class="logType">${t.trade_type || 'day'}</span>
+          <span class="logLev">${isPending ? 'pend' : (t.leverage || 1) + 'x'}</span>
+          <span class="logPnl ${isPending ? '' : pnlClass(pnl)}">${isPending ? 'WAIT' : fmtPnl(pnl)}</span>
+        </div>`;
+      });
+    }
+    document.getElementById('janeTradesEl').innerHTML = html;
+
+    let cornerHtml = '';
+    if (lastClosed) {
+      const em     = lastClosed.outcome === 'WIN' ? '😉' : '😞';
+      const dirEm  = (lastClosed.direction || '').toUpperCase() === 'LONG' ? '⬆️' : '⬇️';
+      cornerHtml = `<div class="logRow lastClosedRow" style="border-left:2px solid rgba(212,175,55,0.45)">
+        <span class="logDir">${dirEm}</span>
+        <span class="logPair">${lastClosed.pair}</span>
+        <span class="logType">${lastClosed.trade_type || ''}</span>
+        <span class="logLev">closed</span>
+        <span class="logPnl ${pnlClass(lastClosed.result)}">${em} ${fmtPnl(lastClosed.result)}</span>
+      </div>`;
+    } else {
+      cornerHtml = '<div class="emptyNote">No closed Jane trades yet.</div>';
+    }
+    document.getElementById('janeCornerEl').innerHTML = cornerHtml;
+  }
+
+  async function refreshJaneTrades() {
+    try {
+      const res = await _apiFetch('/api/jane/trades');
+      if (!res.ok) throw new Error();
+      renderJaneTrades(await res.json());
+    } catch(e) {
+      document.getElementById('janeTradesEl').innerHTML = '<div class="emptyNote">Can\'t reach Dexter.</div>';
     }
   }
 

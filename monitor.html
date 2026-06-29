@@ -438,17 +438,27 @@
   <div class="live-dot" id="liveDot">Connecting</div>
 </div>
 
-<!-- ─── Balance ──────────────────────────────────────────────── -->
-<div class="balance-card">
-  <div class="balance-label">Account Balance</div>
-  <div class="balance-amount" id="balanceAmt">—</div>
-  <div class="pnl-row">
-    <div class="pnl-label">Open PnL</div>
-    <div class="pnl-value flat" id="totalPnl">—</div>
+<!-- ─── Balance cards row ─────────────────────────────────────── -->
+<div style="display:flex; gap:8px; margin: 12px 12px 0;">
+  <div class="balance-card" style="margin:0; flex:1">
+    <div class="balance-label">Chev Balance</div>
+    <div class="balance-amount" id="balanceAmt">—</div>
+    <div class="pnl-row">
+      <div class="pnl-label">Open PnL</div>
+      <div class="pnl-value flat" id="totalPnl">—</div>
+    </div>
+  </div>
+  <div class="balance-card" style="margin:0; flex:1; border-color:rgba(212,175,55,.35);">
+    <div class="balance-label" style="color:var(--gold)">Jane Balance</div>
+    <div class="balance-amount" id="janeBalanceAmt" style="font-size:22px">—</div>
+    <div class="pnl-row">
+      <div class="pnl-label">W / L</div>
+      <div class="pnl-value flat" id="janeWinLoss">—</div>
+    </div>
   </div>
 </div>
 
-<!-- ─── Stats ─────────────────────────────────────────────────── -->
+<!-- ─── Chev Stats ────────────────────────────────────────────── -->
 <div class="stats-bar">
   <div class="stat-pill">
     <div class="stat-pill-label">Win Rate</div>
@@ -467,26 +477,53 @@
 <!-- ─── Watchlist strip ───────────────────────────────────────── -->
 <div class="watchlist-scroll" id="watchlistStrip"></div>
 
-<!-- ─── Open Trades ───────────────────────────────────────────── -->
-<div class="section-head">
-  <div class="section-title">Open Trades</div>
+<!-- ─── Chev Open ──────────────────────────────────────────────── -->
+<div class="section-head" onclick="toggleSection('chevOpen')" style="cursor:pointer">
+  <div class="section-title">Chev Open</div>
   <div class="section-badge" id="openCount">0</div>
+  <div class="section-badge" id="chevOpenToggle" style="margin-left:auto">▼</div>
 </div>
-<div id="openTrades"></div>
+<div id="openTrades" data-section="chevOpen"></div>
 
-<!-- ─── Pending ───────────────────────────────────────────────── -->
-<div class="section-head">
-  <div class="section-title">Pending</div>
+<!-- ─── Chev Pending ──────────────────────────────────────────── -->
+<div class="section-head" onclick="toggleSection('chevPending')" style="cursor:pointer">
+  <div class="section-title">Chev Pending</div>
   <div class="section-badge" id="pendingCount">0</div>
+  <div class="section-badge" id="chevPendingToggle" style="margin-left:auto">▼</div>
 </div>
-<div id="pendingTrades"></div>
+<div id="pendingTrades" data-section="chevPending"></div>
 
-<!-- ─── Closed Trades ─────────────────────────────────────────── -->
-<div class="section-head">
-  <div class="section-title">Closed Trades</div>
+<!-- ─── Chev Closed ───────────────────────────────────────────── -->
+<div class="section-head" onclick="toggleSection('chevClosed')" style="cursor:pointer">
+  <div class="section-title">Chev Closed</div>
   <div class="section-badge" id="closedCount">0</div>
+  <div class="section-badge" id="chevClosedToggle" style="margin-left:auto">▼</div>
 </div>
-<div id="closedTrades"></div>
+<div id="closedTrades" data-section="chevClosed"></div>
+
+<!-- ─── Jane Open ─────────────────────────────────────────────── -->
+<div class="section-head" onclick="toggleSection('janeOpen')" style="cursor:pointer; border-top: 1px solid rgba(212,175,55,.2); margin-top:4px; padding-top:14px;">
+  <div class="section-title" style="color:var(--gold)">Jane Open</div>
+  <div class="section-badge" id="janeOpenCount">0</div>
+  <div class="section-badge" id="janeOpenToggle" style="margin-left:auto">▼</div>
+</div>
+<div id="janeTrades" data-section="janeOpen"></div>
+
+<!-- ─── Jane Pending ──────────────────────────────────────────── -->
+<div class="section-head" onclick="toggleSection('janePending')" style="cursor:pointer">
+  <div class="section-title" style="color:var(--gold)">Jane Pending</div>
+  <div class="section-badge" id="janePendingCount">0</div>
+  <div class="section-badge" id="janePendingToggle" style="margin-left:auto">▼</div>
+</div>
+<div id="janePendingTrades" data-section="janePending"></div>
+
+<!-- ─── Jane Closed ───────────────────────────────────────────── -->
+<div class="section-head" onclick="toggleSection('janeClosed')" style="cursor:pointer">
+  <div class="section-title" style="color:var(--gold)">Jane Closed</div>
+  <div class="section-badge" id="janeClosedCount">0</div>
+  <div class="section-badge" id="janeClosedToggle" style="margin-left:auto">▼</div>
+</div>
+<div id="janeClosedTrades" data-section="janeClosed"></div>
 
 <!-- ─── Chev's Playbook ───────────────────────────────────────── -->
 <div class="section-head" onclick="togglePlaybook()" style="cursor:pointer">
@@ -551,12 +588,21 @@ const FIREBASE   = 'https://chev-monitor-default-rtdb.firebaseio.com/monitor.jso
 const BINANCE    = 'https://api.binance.com/api/v3/ticker/price';
 const FREEFOREX  = 'https://www.freeforexapi.com/api/live';
 
-let state       = null;          // Firebase snapshot
-let cryptoPx    = {};            // live prices from Binance
-let forexPx     = {};            // live prices from FreeForexAPI
-let prevPrices  = {};            // for watchlist % change
-let modalTrade  = null;          // currently open modal trade
-let connected   = false;
+let state          = null;
+let cryptoPx       = {};
+let forexPx        = {};
+let prevPrices     = {};
+let modalTrade     = null;
+let connected      = false;
+const _collapsed   = {};         // section id → true if collapsed
+
+function toggleSection(id) {
+  _collapsed[id] = !_collapsed[id];
+  const el = document.querySelector(`[data-section="${id}"]`);
+  const btn = document.getElementById(id + 'Toggle');
+  if (el) el.style.display = _collapsed[id] ? 'none' : '';
+  if (btn) btn.textContent = _collapsed[id] ? '▶' : '▼';
+}
 
 // ─── Fetch ─────────────────────────────────────────────────────
 async function fetchFirebase() {
@@ -680,18 +726,26 @@ function renderAll() {
   dot.textContent = 'Live';
   dot.className   = 'live-dot active';
 
-  // Balance
+  // Chev balance
   const bal = state.balance || 0;
   document.getElementById('balanceAmt').textContent =
     '$' + bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  // Total open PnL
+  // Chev open PnL
   const totalPnl = open.reduce((s, t) => s + calcPnl(t), 0);
   const pnlEl    = document.getElementById('totalPnl');
   pnlEl.textContent = open.length ? fmtPnl(totalPnl) : '$0.00';
   pnlEl.className   = 'pnl-value ' + pnlClass(totalPnl);
 
-  // Stats
+  // Jane balance card
+  const janeBal = state.jane_balance != null ? state.jane_balance : null;
+  document.getElementById('janeBalanceAmt').textContent =
+    janeBal != null ? '$' + janeBal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+  const jw = state.jane_wins || 0;
+  const jl = state.jane_losses || 0;
+  document.getElementById('janeWinLoss').textContent = `${jw}W / ${jl}L`;
+
+  // Chev stats
   const wins   = state.wins   || 0;
   const losses = state.losses || 0;
   const wr     = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0;
@@ -702,39 +756,86 @@ function renderAll() {
   // Watchlist
   renderWatchlist();
 
-  // Section counts
+  // Chev section counts
   document.getElementById('openCount').textContent    = open.length;
   document.getElementById('pendingCount').textContent = pending.length;
 
-  // Trade cards
+  // Chev trade cards
   const openEl    = document.getElementById('openTrades');
   const pendingEl = document.getElementById('pendingTrades');
-
-  if (!open.length) {
-    openEl.innerHTML = '<div class="empty-state">No open positions</div>';
-  } else {
-    openEl.innerHTML = open.map(tradeCardHTML).join('');
-    openEl.querySelectorAll('.trade-emoji').forEach(el => parseEmoji(el));
+  if (!_collapsed['chevOpen']) {
+    openEl.style.display = '';
+    if (!open.length) {
+      openEl.innerHTML = '<div class="empty-state">No open positions</div>';
+    } else {
+      openEl.innerHTML = open.map(tradeCardHTML).join('');
+      openEl.querySelectorAll('.trade-emoji').forEach(el => parseEmoji(el));
+    }
+  }
+  if (!_collapsed['chevPending']) {
+    pendingEl.style.display = '';
+    if (!pending.length) {
+      pendingEl.innerHTML = '<div class="empty-state">No pending orders</div>';
+    } else {
+      pendingEl.innerHTML = pending.map(pendingCardHTML).join('');
+    }
   }
 
-  if (!pending.length) {
-    pendingEl.innerHTML = '<div class="empty-state">No pending orders</div>';
-  } else {
-    pendingEl.innerHTML = pending.map(pendingCardHTML).join('');
-  }
-
-  // Closed trades
-  const closed    = (state.closed || []).slice().reverse(); // newest first
-  const closedEl  = document.getElementById('closedTrades');
+  // Chev closed
+  const closed   = (state.closed || []).slice().reverse();
+  const closedEl = document.getElementById('closedTrades');
   document.getElementById('closedCount').textContent = closed.length;
-  if (!closed.length) {
-    closedEl.innerHTML = '<div class="empty-state">No closed trades yet</div>';
-  } else {
-    closedEl.innerHTML = closed.map(closedCardHTML).join('');
-    closedEl.querySelectorAll('.trade-emoji').forEach(el => parseEmoji(el));
+  if (!_collapsed['chevClosed']) {
+    closedEl.style.display = '';
+    if (!closed.length) {
+      closedEl.innerHTML = '<div class="empty-state">No closed trades yet</div>';
+    } else {
+      closedEl.innerHTML = closed.map(closedCardHTML).join('');
+      closedEl.querySelectorAll('.trade-emoji').forEach(el => parseEmoji(el));
+    }
   }
 
-  // Playbook (update content if visible)
+  // Jane trades
+  const janeTrades   = (state.jane_trades || []).filter(t => t.status === 'OPEN');
+  const janePending  = (state.jane_trades || []).filter(t => t.status === 'PENDING');
+  const janeClosed   = (state.jane_closed || []).slice().reverse();
+
+  document.getElementById('janeOpenCount').textContent   = janeTrades.length;
+  document.getElementById('janePendingCount').textContent = janePending.length;
+  document.getElementById('janeClosedCount').textContent  = janeClosed.length;
+
+  const janeOpenEl    = document.getElementById('janeTrades');
+  const janePendingEl = document.getElementById('janePendingTrades');
+  const janeClosedEl  = document.getElementById('janeClosedTrades');
+
+  if (!_collapsed['janeOpen']) {
+    janeOpenEl.style.display = '';
+    if (!janeTrades.length) {
+      janeOpenEl.innerHTML = '<div class="empty-state">No open Jane positions</div>';
+    } else {
+      janeOpenEl.innerHTML = janeTrades.map(t => janeTradeCardHTML(t)).join('');
+      janeOpenEl.querySelectorAll('.trade-emoji').forEach(el => parseEmoji(el));
+    }
+  }
+  if (!_collapsed['janePending']) {
+    janePendingEl.style.display = '';
+    if (!janePending.length) {
+      janePendingEl.innerHTML = '<div class="empty-state">No pending Jane orders</div>';
+    } else {
+      janePendingEl.innerHTML = janePending.map(pendingCardHTML).join('');
+    }
+  }
+  if (!_collapsed['janeClosed']) {
+    janeClosedEl.style.display = '';
+    if (!janeClosed.length) {
+      janeClosedEl.innerHTML = '<div class="empty-state">No closed Jane trades yet</div>';
+    } else {
+      janeClosedEl.innerHTML = janeClosed.map(janeClosedCardHTML).join('');
+      janeClosedEl.querySelectorAll('.trade-emoji').forEach(el => parseEmoji(el));
+    }
+  }
+
+  // Playbook
   const playbookBlock = document.getElementById('playbookBlock');
   if (playbookBlock.style.display !== 'none' && state.playbook) {
     playbookBlock.textContent = state.playbook;
@@ -827,6 +928,53 @@ function pendingCardHTML(t) {
       <div class="pending-price">PENDING</div>
       <div class="pending-dist far" data-entry="${t.entry}" data-sym="${t.symbol}">— away</div>
     </div>
+  </div>`;
+}
+
+function janeTradeCardHTML(t) {
+  const pnl = t.live_pnl || 0;
+  const em  = mood(pnl);
+  return `<div class="trade-card" style="border-left-color:var(--gold)">
+    <div class="trade-top">
+      <div class="trade-left">
+        <div class="trade-emoji">${em}</div>
+        <div class="trade-symbol">${t.symbol}</div>
+        <div class="dir-pill dir-${t.direction}">${t.direction}</div>
+        ${t.trade_type ? `<div class="type-pill">${t.trade_type}</div>` : ''}
+        <span style="font-size:9px;color:var(--gold);font-weight:700;letter-spacing:.5px">JANE</span>
+      </div>
+      <div class="trade-pnl ${pnlClass(pnl)}">${fmtPnl(pnl)}</div>
+    </div>
+    <div class="trade-meta">Entry ${fmtPrice(t.symbol, t.entry)}</div>
+    <div class="tow-wrap">
+      <div class="tow-track"><div class="tow-green" style="width:50%"></div></div>
+      <div class="tow-pct">—</div>
+    </div>
+    <div class="scale-labels">
+      <span>SL ${fmtPrice(t.symbol, t.sl)}</span>
+      <span>TP ${fmtPrice(t.symbol, t.tp)}</span>
+    </div>
+  </div>`;
+}
+
+function janeClosedCardHTML(e) {
+  const isWin  = e.outcome === 'WIN';
+  const pnlCls = isWin ? 'up' : 'down';
+  const border = isWin ? 'var(--green)' : 'var(--red)';
+  const em     = isWin ? '✅' : '❌';
+  const outPill = `<span class="dir-pill ${isWin ? 'dir-long' : 'dir-short'}">${e.outcome}</span>`;
+  return `<div class="trade-card" style="border-left-color:${border}">
+    <div class="trade-top">
+      <div class="trade-left">
+        <div class="trade-emoji">${em}</div>
+        <div class="trade-symbol">${e.symbol}</div>
+        <div class="dir-pill dir-${e.direction}">${e.direction}</div>
+        ${outPill}
+        <span style="font-size:9px;color:var(--gold);font-weight:700;letter-spacing:.5px">JANE</span>
+      </div>
+      <div class="trade-pnl ${pnlCls}">${fmtPnl(e.pnl)}</div>
+    </div>
+    <div class="trade-meta">${e.ts ? e.ts.slice(0,16) : ''}</div>
   </div>`;
 }
 
