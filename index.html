@@ -1113,7 +1113,7 @@
   }
 
   function renderTradingLogs(data) {
-    const active = (data.trades || data.active || []).filter(t => t.status === 'OPEN' || t.status === 'PENDING').slice(0, 5);
+    const active = (data.trades || data.active || []).filter(t => t.status === 'OPEN' || t.status === 'PENDING');
     const closedList = (data.closed || []).slice().reverse().slice(0, 3);
     let html = '';
     if (!active.length) {
