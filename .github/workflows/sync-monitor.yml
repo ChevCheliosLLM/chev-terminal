@@ -1,0 +1,28 @@
+name: Sync monitor.html → chev-monitor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - monitor.html
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout chev-terminal
+        uses: actions/checkout@v4
+
+      - name: Push monitor.html to chevcheliosllm/chev-monitor
+        env:
+          GH_TOKEN: ${{ secrets.CHEV_MONITOR_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/chevcheliosllm/chev-monitor.git target
+          cp monitor.html target/monitor.html
+          cd target
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add monitor.html
+          git diff --staged --quiet && echo "No changes" && exit 0
+          git commit -m "Sync monitor.html from chev-terminal [bot]"
+          git push
