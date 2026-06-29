@@ -18,12 +18,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.CHEV_MONITOR_TOKEN }}
         run: |
+          set -e
+          echo "--- Cloning chev-monitor ---"
           git clone https://x-access-token:${GH_TOKEN}@github.com/chevcheliosllm/chev-monitor.git target
+          echo "--- Branches in target repo ---"
+          git -C target branch -a
+          echo "--- Copying monitor.html ---"
           cp monitor.html target/monitor.html
           cd target
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add monitor.html
-          git diff --staged --quiet && echo "No changes" && exit 0
+          git diff --staged --quiet && echo "No changes — already up to date" && exit 0
           git commit -m "Sync monitor.html from chev-terminal [bot]"
-          git push
+          echo "--- Pushing ---"
+          git push origin HEAD
+          echo "--- Done ---"
