@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Chev Terminal</title>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0c0e15;
+    color: #d1d4dc;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---------- Top bar ---------- */
+  #topbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: #131722;
+    border-bottom: 1px solid #1e222d;
+    flex-wrap: wrap;
+  }
+  #topbar .label {
+    font-size: 11px;
+    color: #787b86;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 6px;
+    margin-left: 10px;
+    font-family: "Share Tech Mono", monospace;
+    font-weight: normal;
+  }
+  #topbar .label:first-child { margin-left: 0; }
+
+  .pill {
+    background: #1c2030;
+    border: 1px solid #2a2e39;
+    color: #9598a1;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    font-family: "Share Tech Mono", monospace;
+  }
+  .pill:hover { background: #262b3a; color: #d1d4dc; }
+  .pill.active { background: #2962ff; color: #ffffff; border-color: #2962ff; }
+  .pill.chevTools.active { background: #d4af37; color: #131722; border-color: #d4af37; }
+
+  .iconBtn {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0;
+  }
+  .iconBtn svg { width: 16px; height: 16px; }
+  #rightToggle { margin-left: auto; }
+
+  /* ---------- Body layout ---------- */
+  #body { flex: 1; display: flex; min-height: 0; position: relative; }
+
+  /* ===== LEFT SIDEBAR ===== */
+  #leftPanel {
+    position: absolute; top: 0; left: 0; height: 100%; z-index: 50;
+    width: 0; overflow: hidden; background: #131722; border-right: 1px solid #1e222d;
+    transition: width 0.18s ease; display: flex; flex-direction: column;
+  }
+  #leftPanel.open { width: 280px; }
+  #leftInner { width: 280px; overflow-y: auto; flex: 1; }
+
+  .sectionHeader {
+    padding: 10px 14px 6px; font-size: 11px; color: #787b86; text-transform: uppercase;
+    letter-spacing: 0.06em; border-top: 1px solid #1e222d;
+  }
+  .sectionHeader:first-child { border-top: none; }
+
+  #groupTabs { display: flex; border-bottom: 1px solid #1e222d; }
+  .groupTab {
+    flex: 1; text-align: center; padding: 9px 0; font-size: 11px; color: #787b86;
+    cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .groupTab:hover { color: #d1d4dc; }
+  .groupTab.active { color: #2962ff; border-bottom-color: #2962ff; }
+
+  .watchRow {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 14px; cursor: pointer; border-left: 2px solid transparent;
+    font-size: 11px;
+  }
+  .watchRow:hover { background: #1c2030; }
+  .watchRow:hover .removeBtn { opacity: 1; }
+  .watchRow.active { background: #1c2030; border-left-color: #2962ff; }
+  .watchRow .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .watchRow .logo { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; background: #1c2030; }
+  .watchRow .flagEmoji { font-size: 16px; line-height: 1; }
+  img.emoji { height: 1em; width: 1em; vertical-align: -0.15em; margin: 0 0.05em; }
+  .watchRow img.emoji { height: 18px; width: 18px; vertical-align: middle; margin: 0; flex-shrink: 0; }
+  .logMood img.emoji, .logPnl img.emoji { height: 1.15em; width: 1.15em; vertical-align: -0.2em; }
+  .watchRow .tradeDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: transparent; }
+  .watchRow .tradeDot.live { background: #089981; box-shadow: 0 0 4px #089981; }
+  .watchRow .tradeDot.loss { background: #f23645; box-shadow: 0 0 4px #f23645; }
+  .watchRow .sym { font-size: 13px; color: #d1d4dc; font-weight: 600; white-space: nowrap; }
+  .watchRow .right { display: flex; align-items: center; gap: 8px; }
+  .watchRow .priceBlock { text-align: right; }
+  .watchRow .px { font-size: 12px; color: #d1d4dc; font-family: "Share Tech Mono", monospace; }
+  .watchRow .chg { font-size: 11px; font-family: "Share Tech Mono", monospace; }
+  .watchRow .chg.up { color: #089981; }
+  .watchRow .chg.down { color: #f23645; }
+  .removeBtn { opacity: 0; background: none; border: none; color: #787b86; font-size: 14px; cursor: pointer; padding: 2px 4px; line-height: 1; }
+  .removeBtn:hover { color: #f23645; }
+
+  #addRow { padding: 10px 14px; border-top: 1px solid #1e222d; }
+  #addRow button { width: 100%; background: #1c2030; border: 1px dashed #2a2e39; color: #787b86; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  #addRow button:hover { color: #d1d4dc; border-color: #2962ff; }
+
+  /* ===== Trading Logs - departure board style ===== */
+  #tradingLogs { padding: 8px 10px; }
+  .logRow {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 14px; font-size: 11px;
+    border-bottom: 1px solid #161a26;
+  }
+  .logRow:hover { background: #161a26; cursor: pointer; }
+  .logRow .logMood { font-size: 13px; }
+  .logRow .logPair { font-weight: 600; color: #d1d4dc; flex: 1; white-space: nowrap; }
+  .logRow .logLev { color: #5d6068; font-family: "Share Tech Mono", monospace; }
+  .logRow .logType { font-size: 10px; color: #787b86; text-transform: uppercase; font-family: "Share Tech Mono", monospace; }
+  .logRow .logPnl {
+    font-family: "Share Tech Mono", monospace; font-weight: 700; min-width: 64px; text-align: right;
+  }
+  .logRow .logPnl.pnl-up { color: #089981; }
+  .logRow .logPnl.pnl-down { color: #f23645; }
+  .logRow.lastClosedRow { background: rgba(255,255,255,0.02); }
+  .logRow.pulse { animation: pulseFlash 0.6s ease; }
+  @keyframes pulseFlash { 0% { background: rgba(212,175,55,0.3); } 100% { background: transparent; } }
+
+  .emptyNote { color: #5d6068; font-size: 12px; padding: 10px 14px; }
+
+  /* ===== Chev's Corner ===== */
+  #chevsCorner { padding: 10px; }
+  
+  .ideaCard {
+    background: #131620; border: 1px solid #232838; border-radius: 6px;
+    margin-bottom: 8px; padding: 10px 12px; cursor: pointer; transition: border-color 0.12s, background 0.12s;
+  }
+  .ideaCard:hover { border-color: #2962ff; background: #161a26; }
+  .ideaCard.activeIdea { border-color: #d4af37; }
+  .ideaCard .ideaHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .ideaCard .ideaPair { font-size: 13px; font-weight: 700; color: #d1d4dc; }
+  .ideaCard .ideaType { font-size: 10px; color: #787b86; text-transform: uppercase; }
+  .ideaCard .ideaTags { font-size: 10px; color: #d4af37; margin-bottom: 6px; }
+  .ideaCard .ideaMeta { display: flex; justify-content: space-between; font-size: 10px; color: #787b86; font-family: "SF Mono", Consolas, monospace; }
+  .ideaCard .ideaMeta .e { color: #9598a1; }
+  .ideaCard .ideaMeta .s { color: #f23645; }
+  .ideaCard .ideaMeta .t { color: #089981; }
+
+  /* ---------- Chart area ---------- */
+  #chartWrap { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+  #chart { width: 100%; height: 100%; }
+  /* ---------- Drawing toolbar ---------- */
+  .drawSep { width: 1px; height: 20px; background: #2a2e39; margin: 0 4px; flex-shrink: 0; }
+  .pill.drawTool.active { background: #f0b429; color: #131722; border-color: #f0b429; }
+  .pill.drawClear { color: #f23645; border-color: #2a2e39; }
+  .pill.drawClear:hover { background: rgba(242,54,69,0.15); color: #f23645; border-color: #f23645; }
+  #magnetToggle.active { background: #f0b429; color: #131722; border-color: #f0b429; }
+  #magnetToggle { font-size: 14px; padding: 2px 8px; }
+
+  /* ---------- Drawing canvas ---------- */
+  #drawingCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* ---------- Object tree panel ---------- */
+  #objectTree {
+    display: none; position: absolute; bottom: 34px; right: 10px; z-index: 10;
+    width: 230px; max-height: 280px; overflow-y: auto;
+    background: #131722; border: 1px solid #2a2e39; border-radius: 6px;
+    font-family: "Share Tech Mono", monospace;
+  }
+  #objectTree.open { display: block; }
+  #objectTree .objHeader {
+    display:flex; align-items:center; padding: 7px 10px;
+    font-size:10px; color:#787b86; text-transform:uppercase; letter-spacing:0.06em;
+    border-bottom:1px solid #1e222d; font-weight:normal;
+  }
+  #objectTree .objClose { margin-left:auto; cursor:pointer; color:#5d6068; font-size:13px; }
+  #objectTree .objClose:hover { color:#f23645; }
+  .objRow { display:flex; align-items:center; gap:6px; padding:5px 8px; font-size:11px; color:#9598a1; border-bottom:1px solid #1e222d; cursor:pointer; }
+  .objRow:hover { background:#1c2030; }
+  .objColor { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .objLabel { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .objEye, .objDel { background:none; border:none; color:#5d6068; cursor:pointer; padding:2px 4px; font-size:11px; line-height:1; }
+  .objEye:hover { color:#d1d4dc; }
+  .objDel:hover { color:#f23645; }
+
+  /* ---------- Drawing context menu ---------- */
+  #drawCtx {
+    display:none; position:fixed; z-index:200;
+    background:#1c2030; border:1px solid #2a2e39; border-radius:6px;
+    padding:12px 14px; min-width:210px;
+    font-family:"Share Tech Mono",monospace; box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  }
+  .ctxTitle { font-size:10px; color:#787b86; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+  .ctxRow { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:10px; color:#787b86; }
+  .ctxRow label { min-width:36px; color:#787b86; }
+  #ctxColors { display:flex; gap:4px; flex-wrap:wrap; }
+  .swatch { width:16px; height:16px; border-radius:3px; cursor:pointer; border:2px solid transparent; flex-shrink:0; }
+  .swatch.active, .swatch:hover { border-color:#fff; }
+  #ctxText { flex:1; background:#0c0e15; border:1px solid #2a2e39; color:#d1d4dc; padding:3px 6px; border-radius:3px; font-size:10px; font-family:inherit; outline:none; }
+  #ctxAligns { display:flex; gap:3px; }
+  #ctxAligns button { background:#1e222d; border:1px solid #2a2e39; color:#787b86; padding:2px 7px; border-radius:3px; cursor:pointer; font-size:10px; font-family:inherit; }
+  #ctxAligns button.active, #ctxAligns button:hover { background:#2962ff; color:#fff; border-color:#2962ff; }
+  #ctxDelete { width:100%; margin-top:8px; background:rgba(242,54,69,0.12); border:1px solid rgba(242,54,69,0.35); color:#f23645; padding:5px; border-radius:3px; cursor:pointer; font-size:10px; font-family:inherit; }
+  #ctxDelete:hover { background:rgba(242,54,69,0.25); }
+  input[type=range] { accent-color:#2962ff; cursor:pointer; flex:1; }
+  .ctxNum { min-width:28px; font-size:10px; color:#9598a1; text-align:right; }
+
+  #chevWatermark {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    opacity: 0.18;
+    pointer-events: none;
+    filter: grayscale(40%);
+    z-index: 2;
+  }
+
+  #tradeOverlayBar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 15;
+    display: flex;
+    gap: 6px;
+  }
+  .ovBtn {
+    background: #1c2030;
+    border: 1px solid #2a2e39;
+    color: #787b86;
+    font-size: 10px;
+    font-family: "Share Tech Mono", monospace;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .ovBtn.active {
+    color: #d4af37;
+    border-color: #d4af37;
+  }
+  .ovAnalysisToggle { border-radius: 4px 0 0 4px; }
+  .ovAnalysisArrow  { border-radius: 0 4px 4px 0; border-left: none; padding: 5px 7px; margin-left: -1px; }
+  #overlayAnalysisPanel {
+    position: absolute;
+    top: 42px;
+    right: 10px;
+    z-index: 16;
+    background: #1c2030;
+    border: 1px solid #2a2e39;
+    border-radius: 4px;
+    padding: 8px 12px;
+    display: none;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 130px;
+  }
+  .ovCheck {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #787b86;
+    font-size: 10px;
+    font-family: "Share Tech Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .ovCheck input[type="checkbox"] {
+    accent-color: #d4af37;
+    cursor: pointer;
+    width: 11px; height: 11px;
+  }
+
+  #priceInfo {
+    position: absolute; top: 12px; left: 16px; z-index: 5;
+    font-size: 13px; color: #9598a1; pointer-events: none; line-height: 1.5; transition: left 0.18s ease;
+  }
+  #priceInfo .sym { font-size: 16px; color: #d1d4dc; font-weight: 600; margin-right: 8px; }
+  #priceInfo .price { font-size: 16px; font-weight: 600; }
+  #priceInfo .up { color: #089981; }
+  #priceInfo .down { color: #f23645; }
+
+  #ohlcInfo { margin-top: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 11px; color: #787b86; white-space: nowrap; }
+  #ohlcInfo .val { color: #d1d4dc; }
+  #ohlcInfo .val.up { color: #089981; }
+  #ohlcInfo .val.down { color: #f23645; }
+  #ohlcInfo span { margin-right: 10px; }
+  #candleCountdown { margin-top: 3px; font-family: "SF Mono", Consolas, monospace; font-size: 11px; color: #4c525e; }
+
+  #chevActiveIdeaBanner {
+    position: absolute; top: 12px; right: 16px; z-index: 5;
+    background: rgba(212,175,55,0.12); border: 1px solid #d4af37; border-radius: 4px;
+    padding: 6px 10px; font-size: 11px; color: #d4af37; display: none; max-width: 260px;
+  }
+
+  #status { position: absolute; bottom: 10px; left: 16px; z-index: 5; font-size: 11px; color: #5d6068; pointer-events: none; transition: left 0.18s ease; }
+
+  /* ===== RIGHT PANEL - Chev chat ===== */
+  #rightPanel {
+    width: 0; overflow: hidden; background: #131722; border-left: 1px solid #1e222d;
+    transition: width 0.18s ease; flex-shrink: 0; display: flex;
+  }
+  #rightPanel.open { width: 320px; }
+
+  #chatList { width: 90px; border-right: 1px solid #1e222d; overflow-y: auto; flex-shrink: 0; }
+  .chatListItem { padding: 10px 8px; font-size: 11px; color: #9598a1; cursor: pointer; border-left: 2px solid transparent; word-break: break-word; }
+  .chatListItem:hover { background: #1c2030; }
+  .chatListItem.active { background: #1c2030; border-left-color: #2962ff; color: #d1d4dc; }
+  #newChatBtn { padding: 8px; text-align: center; font-size: 18px; color: #787b86; cursor: pointer; border-bottom: 1px solid #1e222d; }
+  #newChatBtn:hover { color: #2962ff; }
+
+  #chatMain { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #chatMessages { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; }
+  .msg { margin-bottom: 10px; line-height: 1.4; }
+  .msg.user { color: #d1d4dc; text-align: right; }
+  .msg.assistant { color: #9598a1; }
+  .msg .who { font-size: 10px; color: #5d6068; margin-bottom: 2px; text-transform: uppercase; }
+  #chatInputRow { display: flex; border-top: 1px solid #1e222d; padding: 8px; gap: 6px; }
+  #chatInput { flex: 1; background: #0c0e15; border: 1px solid #2a2e39; color: #d1d4dc; border-radius: 4px; padding: 8px; font-size: 12px; resize: none; font-family: inherit; }
+  #chatSendBtn { background: #2962ff; border: none; color: white; border-radius: 4px; padding: 0 14px; cursor: pointer; font-size: 12px; }
+</style>
+</head>
+<body>
+
+  <div id="topbar">
+    <button class="pill iconBtn" id="leftToggle" title="Sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <span class="label">Timeframe</span>
+    <button class="pill" data-tf="15m">15m</button>
+    <button class="pill" data-tf="30m">30m</button>
+    <button class="pill active" data-tf="1h">1h</button>
+    <button class="pill" data-tf="4h">4h</button>
+    <button class="pill" data-tf="1d">1d</button>
+
+    <button class="pill chevTools" id="chevToolsToggle" title="Show/hide Chev's lines on this chart">Chev Tools</button>
+
+    <div class="drawSep"></div>
+    <span class="label">Draw</span>
+    <button class="pill drawTool iconBtn" data-tool="hline" title="Horizontal Line">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="7" x2="19" y2="7"/></svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="ray" title="Ray">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="12" x2="17" y2="3"/><polygon points="17,3 13.5,4.5 16,7.5" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="trendline" title="Trendline">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="4" cy="11" r="1.8" fill="currentColor"/><line x1="4" y1="11" x2="16" y2="3"/><circle cx="16" cy="3" r="1.8" fill="currentColor"/></svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="rect" title="Rectangle">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="16" height="10" rx="1"/></svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="fib" title="Fibonacci">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.2">
+        <line x1="1" y1="1.5" x2="19" y2="1.5"/>
+        <line x1="1" y1="5" x2="19" y2="5" stroke="#5d6068" stroke-dasharray="3,2"/>
+        <rect x="1" y="7" width="18" height="2.5" fill="#d4af37" stroke="none" opacity="0.6"/>
+        <line x1="1" y1="11" x2="19" y2="11" stroke="#5d6068" stroke-dasharray="3,2"/>
+        <line x1="1" y1="13.5" x2="19" y2="13.5"/>
+      </svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="channel" title="Parallel Channel">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="10" x2="18" y2="4"/><line x1="2" y1="14" x2="18" y2="8" stroke-dasharray="3,2"/></svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="vp" title="Volume Profile">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.2">
+        <rect x="10" y="1" width="8" height="2.5" fill="currentColor" opacity="0.9" rx="0.5"/>
+        <rect x="7"  y="4.5" width="11" height="2.5" fill="currentColor" opacity="0.7" rx="0.5"/>
+        <rect x="12" y="8" width="6" height="2.5" fill="currentColor" opacity="0.5" rx="0.5"/>
+        <rect x="14" y="11.5" width="4" height="2" fill="currentColor" opacity="0.35" rx="0.5"/>
+        <line x1="2" y1="1" x2="2" y2="13" stroke-width="1.5"/>
+      </svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="measure" title="Measure">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="3" width="16" height="8" rx="1" stroke-dasharray="3,2"/>
+        <line x1="2" y1="7" x2="5" y2="7"/>
+        <line x1="15" y1="7" x2="18" y2="7"/>
+        <line x1="2" y1="3" x2="2" y2="11"/>
+        <line x1="18" y1="3" x2="18" y2="11"/>
+      </svg>
+    </button>
+    <button class="pill drawTool iconBtn" data-tool="pencil" title="Pencil / Marker  (freehand)">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.4">
+        <path d="M4 11 L14 2 L17 5 L7 13 Z" stroke-linejoin="round"/>
+        <path d="M4 11 L2.5 13 L5.5 13 Z" fill="currentColor" opacity="0.65" stroke="none"/>
+        <line x1="4" y1="11" x2="7" y2="13" stroke-width="1"/>
+      </svg>
+    </button>
+    <button class="pill" id="magnetToggle" title="Magnet">🧲</button>
+    <button class="pill iconBtn" id="objectTreeToggle" title="Objects">
+      <svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <line x1="6" y1="2.5" x2="19" y2="2.5"/><circle cx="3" cy="2.5" r="1.3" fill="currentColor"/>
+        <line x1="6" y1="7" x2="19" y2="7"/><circle cx="3" cy="7" r="1.3" fill="currentColor"/>
+        <line x1="6" y1="11.5" x2="19" y2="11.5"/><circle cx="3" cy="11.5" r="1.3" fill="currentColor"/>
+      </svg>
+    </button>
+    <button class="pill drawClear" id="clearDrawings" title="Clear all drawings">✕</button>
+
+    <button class="pill iconBtn" id="rightToggle" title="Chev">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="body">
+    <!-- LEFT SIDEBAR -->
+    <div id="leftPanel">
+      <div id="leftInner">
+        <div class="sectionHeader">Watchlist</div>
+        <div id="groupTabs">
+          <div class="groupTab active" data-group="crypto">Crypto</div>
+          <div class="groupTab" data-group="forex">Forex</div>
+          <div class="groupTab" data-group="stocks">Stocks</div>
+        </div>
+        <div id="watchlistInner"></div>
+        <div id="addRow"><button id="addPairBtn">+ Add pair</button></div>
+
+        <div class="sectionHeader" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Trading Logs</span>
+          <button id="resetBalance" title="Reset Dexter's paper balance to $10,000 and clear all trades" style="background:rgba(242,54,69,0.12);border:1px solid rgba(242,54,69,0.3);color:#f23645;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:9px;font-family:inherit;">Reset $10k</button>
+        </div>
+        <div id="tradingLogs"><div class="emptyNote">Connecting to Dexter...</div></div>
+
+        <div class="sectionHeader">Chev's Corner</div>
+        <div id="chevsCorner">
+          <div id="chevIdeas"><div class="emptyNote">No pending ideas right now.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER CHART -->
+    <div id="chartWrap">
+      <div id="chart"></div>
+      <canvas id="drawingCanvas"></canvas>
+      <img id="chevWatermark" src="chevportrait.png" alt="" onerror="this.style.display='none'">
+      <!-- Trade overlay toggles — shown when a trade row is active -->
+      <div id="tradeOverlayBar" style="display:none">
+        <button id="btnOverlayEntry" class="ovBtn" title="Show entry candle">Entry</button>
+        <button id="btnOverlayAnalysis" class="ovBtn ovAnalysisToggle" title="Toggle analysis on/off">Analysis</button><button id="btnOverlayAnalysisArrow" class="ovBtn ovAnalysisArrow" title="Layer options">▾</button>
+      </div>
+      <div id="overlayAnalysisPanel" style="display:none">
+        <label class="ovCheck"><input type="checkbox" id="ovChkSR"  checked> S/R Levels</label>
+        <label class="ovCheck"><input type="checkbox" id="ovChkFib" checked> Fibonacci</label>
+      </div>
+      <!-- Object tree panel -->
+      <div id="objectTree">
+        <div class="objHeader">Drawings<span class="objClose" id="objClose">✕</span></div>
+        <div id="objectList"></div>
+      </div>
+      <div id="priceInfo">
+        <div><span class="sym" id="symLabel">SOLUSDT</span><span class="price" id="priceLabel">--</span></div>
+        <div id="ohlcInfo"></div>
+        <div id="candleCountdown"></div>
+      </div>
+      <div id="chevActiveIdeaBanner"></div>
+      <div id="status">Loading...</div>
+    </div>
+
+    <!-- RIGHT CHEV CHAT -->
+    <div id="rightPanel">
+      <div id="chatList">
+        <div id="newChatBtn" title="New chat">+</div>
+        <div id="chatListItems"></div>
+      </div>
+      <div id="chatMain">
+        <div id="chatMessages"></div>
+        <div id="chatInputRow">
+          <textarea id="chatInput" rows="1" placeholder="Ask Chev..."></textarea>
+          <button id="chatSendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Drawing context menu (fixed, outside chartWrap) -->
+<div id="drawCtx">
+  <div class="ctxTitle" id="ctxTypeLabel">Edit Drawing</div>
+  <div class="ctxRow">
+    <label>Color</label>
+    <div id="ctxColors">
+      <div class="swatch" data-color="#f0b429" style="background:#f0b429"></div>
+      <div class="swatch" data-color="#2962ff" style="background:#2962ff"></div>
+      <div class="swatch" data-color="#089981" style="background:#089981"></div>
+      <div class="swatch" data-color="#f23645" style="background:#f23645"></div>
+      <div class="swatch" data-color="#9598a1" style="background:#9598a1"></div>
+      <div class="swatch" data-color="#a78bfa" style="background:#a78bfa"></div>
+      <div class="swatch" data-color="#d4af37" style="background:#d4af37"></div>
+      <div class="swatch" data-color="#ffffff" style="background:#ffffff"></div>
+    </div>
+  </div>
+  <div class="ctxRow">
+    <label>Width</label>
+    <input type="range" id="ctxWidth" min="0.5" max="5" step="0.5" value="1.5">
+    <span class="ctxNum" id="ctxWidthVal">1.5px</span>
+  </div>
+  <div class="ctxRow" id="ctxFillRow">
+    <label>Fill</label>
+    <input type="range" id="ctxFill" min="0" max="0.5" step="0.02" value="0.12">
+    <span class="ctxNum" id="ctxFillVal">12%</span>
+  </div>
+  <div class="ctxRow">
+    <label>Label</label>
+    <input type="text" id="ctxText" placeholder="Add text...">
+  </div>
+  <div class="ctxRow">
+    <label>Align</label>
+    <div id="ctxAligns">
+      <button data-align="left">L</button>
+      <button data-align="center">C</button>
+      <button data-align="right">R</button>
+    </div>
+  </div>
+  <div class="ctxRow">
+    <label>Font</label>
+    <input type="range" id="ctxFontSize" min="7" max="18" step="1" value="9">
+    <span class="ctxNum" id="ctxFontVal">9px</span>
+  </div>
+  <div class="ctxRow" style="flex-direction:column;align-items:stretch;gap:4px;">
+    <label style="margin-bottom:2px;">Templates</label>
+    <div style="display:flex;gap:4px;">
+      <input type="text" id="ctxTplName" placeholder="Template name..." style="flex:1;background:#0c0e15;border:1px solid #2a2e39;color:#d1d4dc;padding:3px 6px;border-radius:3px;font-size:10px;font-family:inherit;outline:none;">
+      <button id="ctxTplSave" style="background:#1e222d;border:1px solid #2a2e39;color:#787b86;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px;font-family:inherit;white-space:nowrap;">Save</button>
+    </div>
+    <div id="ctxTplList" style="display:flex;flex-wrap:wrap;gap:3px;min-height:12px;"></div>
+  </div>
+  <button id="ctxDelete">Delete drawing</button>
+</div>
+
+<script>
+  /* ============================================================
+     CONFIG
+     ============================================================ */
+  function getStoredKey(storageKey, promptText) {
+    let val = localStorage.getItem(storageKey);
+    if (!val) {
+      val = prompt(promptText);
+      if (val) localStorage.setItem(storageKey, val.trim());
+    }
+    return val;
+  }
+  if (!localStorage.getItem('chevFinnhubKey')) {
+    localStorage.setItem('chevFinnhubKey', 'd8u6i89r01qinhug59b0d8u6i89r01qinhug59bg');
+  }
+  function getFinnhubKey() { return localStorage.getItem('chevFinnhubKey'); }
+  if (!localStorage.getItem('chevOandaKey')) {
+    localStorage.setItem('chevOandaKey', 'aff64f8cfa51d031b0537292a1a0e682-62e4e27a6ddb604f85684c4d9ccdafc6');
+  }
+  function getOandaKey() { return localStorage.getItem('chevOandaKey'); }
+  const OANDA_BASE = 'https://api-fxtrade.oanda.com/v3';
+  const OANDA_GRAN = { '15m': 'M15', '30m': 'M30', '1h': 'H1', '4h': 'H4', '1d': 'D' };
+
+  // ── Remote access ──────────────────────────────────────────────────────────
+  const FIREBASE_BASE = 'https://chev-monitor-default-rtdb.firebaseio.com';
+  // API_BASE: empty = relative paths (works when served by Dexter locally).
+  // On GitHub Pages this gets overwritten with the ngrok URL from Firebase config.
+  let API_BASE = '';
+  async function _resolveApiBase() {
+    const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (isLocal) return; // relative paths work fine
+    try {
+      const r = await fetch(`${FIREBASE_BASE}/config/api_url.json`);
+      if (r.ok) { const url = await r.json(); if (url) { API_BASE = url; return; } }
+    } catch(e) {}
+    console.warn('[Chev] No backend URL in Firebase. Run `ngrok http 8080` alongside Dexter.');
+  }
+  function getOpenWebUIKey() { return getStoredKey('chevOpenWebUIKey', 'Paste your Open WebUI API key (used to talk to Chev):'); }
+  function getOpenWebUIUrl() { return localStorage.getItem('chevOpenWebUIUrl') || 'http://localhost:3000/api/chat/completions'; }
+  function getChevModelId() { return getStoredKey('chevModelId', "What is Chev's model id in Open WebUI? (e.g. chev-chelios)") || 'chev-chelios'; }
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  const chartWrap = document.getElementById('chartWrap');
+  const statusEl = document.getElementById('status');
+  const symLabel = document.getElementById('symLabel');
+  const priceLabel = document.getElementById('priceLabel');
+  const priceInfo = document.getElementById('priceInfo');
+  const ohlcInfo = document.getElementById('ohlcInfo');
+  const chevBanner = document.getElementById('chevActiveIdeaBanner');
+
+  const STOCK_DOMAINS = { NVDA: 'nvidia.com', TSLA: 'tesla.com', AMZN: 'amazon.com', AMD: 'amd.com' };
+  const FOREX_FLAGS = {
+    'EUR/USD': '🇪🇺', 'GBP/USD': '🇬🇧', 'USD/JPY': '🇯🇵', 'AUD/USD': '🇦🇺',
+    'USD/CAD': '🇨🇦', 'USD/CHF': '🇨🇭', 'NZD/USD': '🇳🇿',
+  };
+  const TAG_NAMES = { SR: 'Support/Resistance', FB: 'Fibonacci', GP: 'Golden Pocket', RS: 'RSI Divergence', VW: 'VWAP', EM: 'EMA', VP: 'Volume Profile', CP: 'Candle Pattern', TR: 'Triangle' };
+
+  const DEFAULT_GROUPS = {
+    crypto: [
+      { symbol: 'BTCUSDT', label: 'BTC', icon: 'btc', type: 'crypto' },
+      { symbol: 'ETHUSDT', label: 'ETH', icon: 'eth', type: 'crypto' },
+      { symbol: 'SOLUSDT', label: 'SOL', icon: 'sol', type: 'crypto' },
+      { symbol: 'XRPUSDT', label: 'XRP', icon: 'xrp', type: 'crypto' },
+      { symbol: 'ADAUSDT', label: 'ADA', icon: 'ada', type: 'crypto' },
+      { symbol: 'XLMUSDT', label: 'XLM', icon: 'xlm', type: 'crypto' },
+    ],
+    forex: [
+      { symbol: 'EUR/USD', label: 'EUR/USD', type: 'forex' },
+      { symbol: 'GBP/USD', label: 'GBP/USD', type: 'forex' },
+      { symbol: 'USD/JPY', label: 'USD/JPY', type: 'forex' },
+      { symbol: 'AUD/USD', label: 'AUD/USD', type: 'forex' },
+    ],
+    stocks: [
+      { symbol: 'NVDA', label: 'NVDA', type: 'stock' },
+      { symbol: 'TSLA', label: 'TSLA', type: 'stock' },
+      { symbol: 'AMZN', label: 'AMZN', type: 'stock' },
+      { symbol: 'AMD', label: 'AMD', type: 'stock' },
+    ],
+  };
+
+  const GROUPS_FB_URL = `${FIREBASE_BASE}/watchlist/groups.json`;
+  function loadGroups() {
+    const saved = localStorage.getItem('chevWatchlistGroups');
+    if (saved) { try { return JSON.parse(saved); } catch(e) {} }
+    return JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+  }
+  function saveGroups() {
+    const payload = JSON.stringify(groups);
+    localStorage.setItem('chevWatchlistGroups', payload);
+    fetch(GROUPS_FB_URL, { method:'PUT', body:payload, headers:{'Content-Type':'application/json'} }).catch(()=>{});
+  }
+  // On load: pull watchlist from Firebase (friend's additions show up automatically)
+  fetch(GROUPS_FB_URL).then(r => r.ok ? r.json() : null).then(d => {
+    if (d && typeof d === 'object') {
+      groups = d;
+      localStorage.setItem('chevWatchlistGroups', JSON.stringify(d));
+      buildWatchlistRows();
+      refreshWatchlistPrices();
+    }
+  }).catch(()=>{});
+
+  let groups = loadGroups();
+  let currentGroup = 'crypto';
+  let currentSymbol = groups.crypto[2].symbol; // SOL default
+  let currentType = 'crypto';
+  let currentTf = '1h';
+  let pollTimer = null;
+  let chevToolsOn = true;
+  let chevPriceLines = [];
+  let activeIdeaRow = null;
+
+  /* ============================================================
+     MAIN CHART
+     ============================================================ */
+  const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+    autoSize: true,
+    layout: { background: { color: '#131722' }, textColor: '#787b86' },
+    grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+    rightPriceScale: { borderColor: '#2a2e39', scaleMargins: { top: 0.08, bottom: 0.25 } },
+    timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+  });
+  const candleSeries = chart.addCandlestickSeries({
+    upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645',
+  });
+  const volumeSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'volume' });
+  chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 }, visible: false });
+
+  new ResizeObserver(() => syncCanvasSize()).observe(chartWrap);
+
+  function volColor(c) { return c.close >= c.open ? 'rgba(8,153,129,0.5)' : 'rgba(242,54,69,0.5)'; }
+  function formatVolume(v) {
+    if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+    return v.toFixed(2);
+  }
+
+  /* ---------- Data fetching: crypto (Binance) vs forex/stock (Finnhub) ---------- */
+  const FINNHUB_RES_MAP = { '15m': '15', '30m': '30', '1h': '60', '4h': '240', '1d': 'D' };
+
+  function toFinnhubSymbol(symbol, type) {
+    if (type === 'forex') return 'OANDA:' + symbol.replace('/', '_');
+    return symbol;
+  }
+
+  async function fetchCandles(symbol, interval, type, limit = 1500) {
+    if (type === 'crypto') {
+      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Binance error ${res.status}`);
+      const raw = await res.json();
+      return raw.map(c => ({
+        time: Math.floor(c[0] / 1000), open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5]),
+      }));
+    } else if (type === 'forex') {
+      const gran = OANDA_GRAN[interval] || 'H1';
+      const instrument = symbol.replace('/', '_');
+      const url = `${OANDA_BASE}/instruments/${instrument}/candles?granularity=${gran}&count=${Math.min(limit, 5000)}&price=M`;
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${getOandaKey()}` } });
+      if (!res.ok) throw new Error(`OANDA ${res.status}`);
+      const data = await res.json();
+      if (!data.candles || !data.candles.length) throw new Error('No data from OANDA');
+      return data.candles.map(c => ({
+        time: Math.floor(new Date(c.time).getTime() / 1000),
+        open: parseFloat(c.mid.o), high: parseFloat(c.mid.h),
+        low:  parseFloat(c.mid.l), close: parseFloat(c.mid.c),
+        volume: c.volume || 0,
+      }));
+    } else {
+      const key = getFinnhubKey();
+      const fhSymbol = toFinnhubSymbol(symbol, type);
+      const resolution = FINNHUB_RES_MAP[interval] || '60';
+      const to = Math.floor(Date.now() / 1000);
+      const secondsPerCandle = { '15m': 900, '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400 }[interval] || 3600;
+      const from = to - secondsPerCandle * limit;
+      const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(fhSymbol)}&resolution=${resolution}&from=${from}&to=${to}&token=${key}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.s !== 'ok') throw new Error('No stock data from Finnhub');
+      const out = [];
+      for (let i = 0; i < data.t.length; i++) {
+        out.push({ time: data.t[i], open: data.o[i], high: data.h[i], low: data.l[i], close: data.c[i], volume: data.v[i] || 0 });
+      }
+      return out;
+    }
+  }
+
+  function updatePriceLabel(candles) {
+    const last = candles[candles.length - 1];
+    const prev = candles[candles.length - 2] || last;
+    const up = last.close >= prev.close;
+    priceLabel.textContent = last.close.toLocaleString(undefined, { maximumFractionDigits: 6 });
+    priceLabel.className = 'price ' + (up ? 'up' : 'down');
+    renderOhlc(last, up);
+  }
+
+  function renderOhlc(c, up) {
+    const cls = up ? 'up' : 'down';
+    ohlcInfo.innerHTML =
+      `<span>O <span class="val">${c.open.toFixed(4)}</span></span>` +
+      `<span>H <span class="val">${c.high.toFixed(4)}</span></span>` +
+      `<span>L <span class="val">${c.low.toFixed(4)}</span></span>` +
+      `<span>C <span class="val ${cls}">${c.close.toFixed(4)}</span></span>` +
+      `<span>Vol <span class="val">${formatVolume(c.volume || 0)}</span></span>`;
+  }
+
+  let currentCandles = [];
+
+  async function loadChart(symbol, interval, type) {
+    statusEl.textContent = 'Loading...';
+    symLabel.textContent = symbol;
+    try {
+      const candles = await fetchCandles(symbol, interval, type);
+      currentCandles = candles;
+      candleSeries.setData([]);
+      volumeSeries.setData([]);
+      candleSeries.setData(candles);
+      volumeSeries.setData(candles.map(c => ({ time: c.time, value: c.volume, color: volColor(c) })));
+      updatePriceLabel(candles);
+      chart.priceScale('right').applyOptions({ autoScale: true });
+      chart.timeScale().fitContent();
+      setTimeout(() => chart.priceScale('right').applyOptions({ autoScale: false }), 100);
+      statusEl.textContent = `${symbol} · ${interval} · live`;
+    } catch (err) {
+      currentCandles = [];
+      candleSeries.setData([]);
+      volumeSeries.setData([]);
+      statusEl.textContent = `${symbol} — ${err.message}`;
+      console.error('[loadChart]', symbol, err);
+    }
+  }
+
+  async function pollLatestCandle() {
+    try {
+      const candles = await fetchCandles(currentSymbol, currentTf, currentType, 2);
+      const latest = candles[candles.length - 1];
+      candleSeries.update(latest);
+      volumeSeries.update({ time: latest.time, value: latest.volume, color: volColor(latest) });
+      updatePriceLabel(candles);
+      // Keep currentCandles fresh for magnet
+      if (currentCandles.length) {
+        if (currentCandles[currentCandles.length - 1].time === latest.time) {
+          currentCandles[currentCandles.length - 1] = latest;
+        } else {
+          currentCandles.push(latest);
+        }
+      }
+    } catch (err) {}
+  }
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollLatestCandle, currentType === 'crypto' ? 5000 : 15000);
+  }
+
+  const CANDLE_DURATION_MS = { '15m': 900000, '30m': 1800000, '1h': 3600000, '4h': 14400000, '1d': 86400000 };
+  const candleCountdownEl = document.getElementById('candleCountdown');
+  function updateCandleCountdown() {
+    const ms = CANDLE_DURATION_MS[currentTf];
+    if (!ms) { candleCountdownEl.textContent = ''; return; }
+    let rem = Math.ceil((ms - (Date.now() % ms)) / 1000);
+    const h = Math.floor(rem / 3600); rem -= h * 3600;
+    const m = Math.floor(rem / 60);   rem -= m * 60;
+    const s = rem;
+    const pad = n => String(n).padStart(2, '0');
+    candleCountdownEl.textContent = h > 0
+      ? `candle closes in ${h}:${pad(m)}:${pad(s)}`
+      : `candle closes in ${pad(m)}:${pad(s)}`;
+  }
+  updateCandleCountdown();
+  setInterval(updateCandleCountdown, 1000);
+
+  chart.subscribeCrosshairMove(param => {
+    if (!param.time) return;
+    const candleData = param.seriesData.get(candleSeries);
+    const volData = param.seriesData.get(volumeSeries);
+    if (!candleData) return;
+    renderOhlc({ ...candleData, volume: volData ? volData.value : 0 }, candleData.close >= candleData.open);
+  });
+
+  /* ============================================================
+     WATCHLIST
+     ============================================================ */
+  const leftPanel = document.getElementById('leftPanel');
+  const leftToggle = document.getElementById('leftToggle');
+  const watchlistInner = document.getElementById('watchlistInner');
+  const groupTabsEls = document.querySelectorAll('.groupTab');
+  const addPairBtn = document.getElementById('addPairBtn');
+
+  leftToggle.addEventListener('click', () => {
+    leftPanel.classList.toggle('open');
+    const open = leftPanel.classList.contains('open');
+    priceInfo.style.left = open ? '296px' : '16px';
+    statusEl.style.left = open ? '296px' : '16px';
+  });
+
+  groupTabsEls.forEach(tab => {
+    tab.addEventListener('click', () => {
+      groupTabsEls.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentGroup = tab.dataset.group;
+      buildWatchlistRows();
+      refreshWatchlistPrices();
+    });
+  });
+
+  function iconUrl(ticker) { return `https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@master/32/color/${ticker}.png`; }
+  function logoUrl(domain) { return `https://www.google.com/s2/favicons?sz=32&domain=${domain}`; }
+  function cssId(symbol) { return symbol.replace(/[^a-zA-Z0-9]/g, ''); }
+
+  function watchRowVisual(item) {
+    if (item.type === 'crypto') return `<img class="logo" src="${iconUrl(item.icon)}" alt="" onerror="this.style.display='none'" />`;
+    if (item.type === 'stock') {
+      const domain = STOCK_DOMAINS[item.symbol];
+      return domain ? `<img class="logo" src="${logoUrl(domain)}" alt="" onerror="this.style.display='none'" />` : '';
+    }
+    if (item.type === 'forex') return `<span class="flagEmoji">${FOREX_FLAGS[item.symbol] || '🏳️'}</span>`;
+    return '';
+  }
+
+  function buildWatchlistRows() {
+    const items = groups[currentGroup] || [];
+    watchlistInner.innerHTML = items.map(item => `
+      <div class="watchRow${item.symbol === currentSymbol ? ' active' : ''}" data-symbol="${item.symbol}" data-type="${item.type}">
+        <span class="left">
+          <span class="tradeDot" id="dot-${cssId(item.symbol)}" title="No open trade"></span>
+          ${watchRowVisual(item)}
+          <span class="sym">${item.label}</span>
+        </span>
+        <span class="right">
+          <span class="priceBlock">
+            <div class="px" id="px-${cssId(item.symbol)}">--</div>
+            <div class="chg" id="chg-${cssId(item.symbol)}">--</div>
+          </span>
+          <button class="removeBtn" data-remove="${item.symbol}" title="Remove">×</button>
+        </span>
+      </div>
+    `).join('');
+
+    watchlistInner.querySelectorAll('.watchRow').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.classList.contains('removeBtn')) return;
+        currentSymbol = row.dataset.symbol;
+        currentType = row.dataset.type;
+        drawings = loadDrawings(currentSymbol);
+        updateObjTree();
+        _syncDrawings(currentSymbol);
+        _subscribeDrawings(currentSymbol);
+        watchlistInner.querySelectorAll('.watchRow').forEach(r => r.classList.remove('active'));
+        row.classList.add('active');
+        clearChevTools();
+        loadChart(currentSymbol, currentTf, currentType).then(startPolling);
+      });
+    });
+    watchlistInner.querySelectorAll('.removeBtn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        groups[currentGroup] = groups[currentGroup].filter(p => p.symbol !== btn.dataset.remove);
+        saveGroups();
+        buildWatchlistRows();
+      });
+    });
+  }
+
+  async function refreshWatchlistPrices() {
+    const items = groups[currentGroup] || [];
+    const cryptoItems = items.filter(i => i.type === 'crypto');
+    const otherItems = items.filter(i => i.type !== 'crypto');
+
+    if (cryptoItems.length) {
+      try {
+        const symbolsParam = encodeURIComponent(JSON.stringify(cryptoItems.map(i => i.symbol)));
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
+        if (res.ok) {
+          const data = await res.json();
+          data.forEach(t => applyWatchPrice(t.symbol, parseFloat(t.lastPrice), parseFloat(t.priceChangePercent)));
+        }
+      } catch (e) {}
+    }
+
+    const stockItems = items.filter(i => i.type === 'stock');
+    for (const item of stockItems) {
+      try {
+        const key = getFinnhubKey();
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(item.symbol)}&token=${key}`);
+        const data = await res.json();
+        if (data.c) {
+          const changePct = data.pc ? ((data.c - data.pc) / data.pc) * 100 : 0;
+          applyWatchPrice(item.symbol, data.c, changePct);
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Forex prices: FreeForexAPI (free, no key, real-time) → Dexter /api/prices fallback
+  const _forexSessionOpen = {};
+  async function refreshForexPrices() {
+    const forexItems = groups.forex || [];
+    if (!forexItems.length) return;
+    const pairParam = forexItems.map(i => i.symbol.replace('/', '')).join(',');
+
+    // Primary: FreeForexAPI — one batch call for all forex pairs
+    try {
+      const res = await fetch(`https://www.freeforexapi.com/api/live?pairs=${pairParam}`);
+      const data = await res.json();
+      if (data.code === 200 && data.rates) {
+        forexItems.forEach(item => {
+          const key = item.symbol.replace('/', '');
+          const r = data.rates[key];
+          if (!r || !r.rate) return;
+          const price = r.rate;
+          if (!_forexSessionOpen[item.symbol]) _forexSessionOpen[item.symbol] = price;
+          const changePct = ((price - _forexSessionOpen[item.symbol]) / _forexSessionOpen[item.symbol]) * 100;
+          applyWatchPrice(item.symbol, price, changePct);
+        });
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback: Dexter's /api/prices (cached every 3s via yfinance)
+    try {
+      const res = await fetch(API_BASE + '/api/prices');
+      const data = await res.json();
+      forexItems.forEach(item => {
+        const price = data[item.symbol];
+        if (!price) return;
+        if (!_forexSessionOpen[item.symbol]) _forexSessionOpen[item.symbol] = price;
+        const changePct = ((price - _forexSessionOpen[item.symbol]) / _forexSessionOpen[item.symbol]) * 100;
+        applyWatchPrice(item.symbol, price, changePct);
+      });
+    } catch (e) {}
+  }
+
+  function applyWatchPrice(symbol, price, changePct) {
+    const pxEl = document.getElementById(`px-${cssId(symbol)}`);
+    const chgEl = document.getElementById(`chg-${cssId(symbol)}`);
+    if (!pxEl || !chgEl) return;
+    const decimals = symbol.includes('/') ? 5 : 4;
+    pxEl.textContent = price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    chgEl.textContent = (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%';
+    chgEl.className = 'chg ' + (changePct >= 0 ? 'up' : 'down');
+  }
+
+  addPairBtn.addEventListener('click', () => {
+    const input = prompt(
+      `Add a pair to ${currentGroup.toUpperCase()}.\n\n` +
+      (currentGroup === 'crypto' ? 'Binance symbol, e.g. DOGEUSDT' : currentGroup === 'forex' ? 'Pair, e.g. USD/CAD' : 'Stock ticker, e.g. AAPL')
+    );
+    if (!input) return;
+    const symbol = input.trim().toUpperCase();
+    if (groups[currentGroup].some(p => p.symbol === symbol)) { alert('Already in this list.'); return; }
+    groups[currentGroup].push({
+      symbol, label: symbol,
+      icon: currentGroup === 'crypto' ? symbol.replace('USDT', '').toLowerCase() : undefined,
+      type: currentGroup === 'crypto' ? 'crypto' : currentGroup === 'forex' ? 'forex' : 'stock',
+    });
+    saveGroups();
+    buildWatchlistRows();
+    refreshWatchlistPrices();
+  });
+
+  buildWatchlistRows();
+  // Resolve backend URL first (no-op on localhost, reads Firebase config on GitHub Pages),
+  // then kick off all API-dependent polling.
+  _resolveApiBase().then(() => {
+    refreshWatchlistPrices();  refreshForexPrices();
+    setInterval(refreshWatchlistPrices, 3000);
+    setInterval(refreshForexPrices, 1000);
+    refreshTradingLogs();
+    setInterval(refreshTradingLogs, 5000);
+    refreshChevsCorner();
+    setInterval(refreshChevsCorner, 30000);
+  });
+
+  /* ============================================================
+     TRADING LOGS
+     ============================================================ */
+  const tradingLogsEl = document.getElementById('tradingLogs');
+  let lastTradeStatuses = {};
+
+  function pnlClass(pnl) { return pnl >= 0 ? 'pnl-up' : 'pnl-down'; }
+  function fmtPnl(pnl) { return (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2); }
+  function moodEmoji(pnl) {
+    if (pnl >= 20) return '🥳';
+    if (pnl >= 5) return '😄';
+    if (pnl > 0) return '🙂';
+    if (pnl > -5) return '😐';
+    if (pnl > -20) return '😟';
+    return '😡';
+  }
+
+  let activeLogTrade = null;
+  let confPriceLines = [];
+
+  function clearConfLines() {
+    confPriceLines.forEach(l => { try { candleSeries.removePriceLine(l); } catch(e){} });
+    confPriceLines = [];
+  }
+
+  function drawConfLines(confPrices) {
+    clearConfLines();
+    if (!confPrices || !Object.keys(confPrices).length) return;
+    const CONF_COLORS = {
+      SR_S: '#089981', SR_R: '#f23645',
+      FB_50: '#9b59b6', FB_618: '#d4af37', FB_65: '#d4af37', FB_786: '#e67e22',
+    };
+    Object.entries(confPrices).forEach(([key, price]) => {
+      if (!price) return;
+      const color = CONF_COLORS[key] || '#787b86';
+      const line = candleSeries.createPriceLine({
+        price: parseFloat(price), color, lineWidth: 1,
+        lineStyle: 2, axisLabelVisible: true, title: key.replace('_', ' '),
+      });
+      confPriceLines.push(line);
+    });
+  }
+
+  function renderTradingLogs(data) {
+    const active = (data.active || []).slice(0, 5);
+    const lastClosed = data.last_closed;
+    let html = '';
+    if (!active.length) {
+      html += '<div class="emptyNote">No active trades right now.</div>';
+    } else {
+      active.forEach(t => {
+        const justClosed = lastTradeStatuses[t.row] && lastTradeStatuses[t.row] !== t.status;
+        const confData = encodeURIComponent(JSON.stringify(t.confluence_prices || {}));
+        html += `
+          <div class="logRow${justClosed ? ' pulse' : ''}" data-pair="${t.pair}" data-type="${t.pair.endsWith('USDT') ? 'crypto' : (t.pair.includes('/') ? 'forex' : 'stock')}" data-conf="${confData}" data-row="${t.row}" data-entry="${t.entry||''}" data-sl="${t.sl||''}" data-tp="${t.tp||''}" data-direction="${t.direction||''}" data-ts="${t.open_ts||''}" data-tags="${t.tags||''}">
+            <span class="logMood">${moodEmoji(t.live_pnl)}</span>
+            <span class="logPair">${t.pair}</span>
+            <span class="logType">${t.trade_type || 'day'}</span>
+            <span class="logLev">${t.leverage}x</span>
+            <span class="logPnl ${pnlClass(t.live_pnl)}">${fmtPnl(t.live_pnl)}</span>
+          </div>`;
+        lastTradeStatuses[t.row] = t.status;
+      });
+    }
+    if (lastClosed) {
+      const resultEmoji = lastClosed.outcome === 'WIN' ? '😉' : '😞';
+      const dirEmoji = lastClosed.direction === 'LONG' ? '⬆️' : '⬇️';
+      html += `
+        <div class="logRow lastClosedRow">
+          <span class="logDir">${dirEmoji}</span>
+          <span class="logPair">${lastClosed.pair}</span>
+          <span class="logType">${lastClosed.trade_type || ''}</span>
+          <span class="logLev">closed</span>
+          <span class="logPnl ${pnlClass(lastClosed.result)}">${resultEmoji} ${fmtPnl(lastClosed.result)}</span>
+        </div>`;
+    }
+    tradingLogsEl.innerHTML = html;
+
+    tradingLogsEl.querySelectorAll('.logRow[data-pair]').forEach(row => {
+      row.addEventListener('click', async () => {
+        const pair = row.dataset.pair;
+        const type = row.dataset.type;
+        const rowId = row.dataset.row;
+        const conf = JSON.parse(decodeURIComponent(row.dataset.conf || '{}'));
+        tradingLogsEl.querySelectorAll('.logRow').forEach(r => r.style.borderLeft = '');
+        row.style.borderLeft = '2px solid #2962ff';
+        activeLogTrade = rowId;
+        const tradeSnap = {
+          entry: parseFloat(row.dataset.entry) || null,
+          sl:    parseFloat(row.dataset.sl)    || null,
+          tp:    parseFloat(row.dataset.tp)    || null,
+          direction: row.dataset.direction,
+          open_ts: row.dataset.ts,
+          tags: row.dataset.tags,
+        };
+        currentSymbol = pair; currentType = type;
+        drawings = loadDrawings(currentSymbol); updateObjTree();
+        _syncDrawings(currentSymbol); _subscribeDrawings(currentSymbol);
+        watchlistInner.querySelectorAll('.watchRow').forEach(r => r.classList.remove('active'));
+        clearChevTools();
+        await loadChart(currentSymbol, currentTf, currentType);
+        startPolling();
+        activateTradeOverlay(tradeSnap, conf);
+      });
+    });
+  }
+
+  async function refreshTradingLogs() {
+    try {
+      const res = await fetch(API_BASE + '/api/trades');
+      if (!res.ok) throw new Error('no response');
+      renderTradingLogs(await res.json());
+    } catch (e) {
+      tradingLogsEl.innerHTML = '<div class="emptyNote">Can\'t reach Dexter - is dexter.py running?</div>';
+    }
+  }
+
+  document.getElementById('resetBalance').addEventListener('click', async () => {
+    if (!confirm('Reset Dexter\'s balance to $10,000 and clear all open/pending trades?')) return;
+    try {
+      const res = await fetch(API_BASE + '/api/reset_balance', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) { alert('Done — balance reset to $10,000. Restart Dexter to fully reload state.'); refreshTradingLogs(); }
+      else alert('Reset failed: ' + data.error);
+    } catch(e) { alert('Could not reach Dexter.'); }
+  });
+
+  /* ============================================================
+     CHEV'S CORNER - clickable idea cards, no embedded mini charts.
+     Clicking an idea loads its pair into the MAIN chart and draws
+     Chev's entry/SL/TP lines there, toggleable via "Chev Tools".
+     ============================================================ */
+  const chevIdeasEl = document.getElementById('chevIdeas');
+  let currentIdeas = [];
+
+  function clearChevTools() {
+    chevPriceLines.forEach(line => candleSeries.removePriceLine(line));
+    chevPriceLines = [];
+    chevBanner.style.display = 'none';
+    activeIdeaRow = null;
+    document.querySelectorAll('.ideaCard').forEach(c => c.classList.remove('activeIdea'));
+    clearConfLines();
+    activeLogTrade = null;
+    if (tradingLogsEl) tradingLogsEl.querySelectorAll('.logRow').forEach(r => r.style.borderLeft = '');
+    // Hide trade overlay bar and reset state
+    document.getElementById('tradeOverlayBar').style.display = 'none';
+    _overlayEntry = false; _overlayPanelOpen = false; _overlayAnalysisOn = true; _activeTrade = null;
+    _overlayComponents = { sr: true, fib: true };
+    overlayDrawings = [];
+    document.getElementById('btnOverlayEntry').classList.remove('active');
+    document.getElementById('btnOverlayAnalysis').classList.remove('active');
+    document.getElementById('btnOverlayAnalysisArrow').classList.remove('active');
+    document.getElementById('overlayAnalysisPanel').style.display = 'none';
+    document.getElementById('ovChkSR').checked  = true;
+    document.getElementById('ovChkFib').checked = true;
+  }
+
+  // Trade overlay state
+  let _overlayEntry       = false;
+  let _overlayPanelOpen   = false;
+  let _overlayAnalysisOn  = true;
+  let _overlayComponents  = { sr: true, fib: true };
+  let _activeTrade        = null;  // { entry, sl, direction, open_ts, conf }
+
+  document.getElementById('btnOverlayEntry').addEventListener('click', () => {
+    _overlayEntry = !_overlayEntry;
+    document.getElementById('btnOverlayEntry').classList.toggle('active', _overlayEntry);
+    _refreshTradeOverlayLines();
+  });
+  document.getElementById('btnOverlayAnalysis').addEventListener('click', (e) => {
+    e.stopPropagation();
+    _overlayAnalysisOn = !_overlayAnalysisOn;
+    document.getElementById('btnOverlayAnalysis').classList.toggle('active', _overlayAnalysisOn);
+    _refreshTradeOverlayLines();
+  });
+  document.getElementById('btnOverlayAnalysisArrow').addEventListener('click', (e) => {
+    e.stopPropagation();
+    _overlayPanelOpen = !_overlayPanelOpen;
+    document.getElementById('btnOverlayAnalysisArrow').classList.toggle('active', _overlayPanelOpen);
+    document.getElementById('overlayAnalysisPanel').style.display = _overlayPanelOpen ? 'flex' : 'none';
+  });
+  document.getElementById('ovChkSR').addEventListener('change', e => {
+    _overlayComponents.sr = e.target.checked;
+    _refreshTradeOverlayLines();
+  });
+  document.getElementById('ovChkFib').addEventListener('change', e => {
+    _overlayComponents.fib = e.target.checked;
+    _refreshTradeOverlayLines();
+  });
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('overlayAnalysisPanel');
+    const arrow = document.getElementById('btnOverlayAnalysisArrow');
+    if (_overlayPanelOpen && panel && !panel.contains(e.target) && e.target !== arrow) {
+      _overlayPanelOpen = false;
+      arrow.classList.remove('active');
+      panel.style.display = 'none';
+    }
+  });
+
+  function _refreshTradeOverlayLines() {
+    clearConfLines();
+    overlayDrawings = [];
+    if (!_activeTrade) { redrawAll(); return; }
+
+    // Entry / SL / TP price lines (always shown regardless of analysis toggle)
+    if (_overlayEntry) {
+      const { entry, sl, tp } = _activeTrade;
+      [
+        entry != null && { price: entry, color: 'rgba(149,152,161,0.5)', title: 'Entry' },
+        sl    != null && { price: sl,    color: 'rgba(242,54,69,0.5)',   title: 'SL' },
+        tp    != null && { price: tp,    color: 'rgba(8,153,129,0.5)',   title: 'TP' },
+      ].filter(Boolean).forEach(l => {
+        try { confPriceLines.push(candleSeries.createPriceLine({ price: l.price, color: l.color, lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: l.title })); } catch(e){}
+      });
+    }
+
+    if (!_overlayAnalysisOn) { redrawAll(); return; }
+
+    const cp = _activeTrade.conf || {};
+
+    // S/R levels — clean price lines, no fib clutter
+    if (_overlayComponents.sr) {
+      if (cp.SR_S) { try { confPriceLines.push(candleSeries.createPriceLine({ price: parseFloat(cp.SR_S), color: '#089981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Support' })); } catch(e){} }
+      if (cp.SR_R) { try { confPriceLines.push(candleSeries.createPriceLine({ price: parseFloat(cp.SR_R), color: '#f23645', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Resist'  })); } catch(e){} }
+    }
+
+    // Fibonacci — canvas fib tool, no price axis labels
+    if (_overlayComponents.fib && cp.FB_618 != null && cp.FB_50 != null && currentCandles && currentCandles.length >= 2) {
+      const fb50  = parseFloat(cp.FB_50);
+      const fb618 = parseFloat(cp.FB_618);
+      const range = (fb50 - fb618) / (0.618 - 0.5);
+      const pLow  = Math.min(fb50 + range * 0.5, fb50 - range * 0.5);
+      const pHigh = Math.max(fb50 + range * 0.5, fb50 - range * 0.5);
+
+      // Find candles closest to the actual swing low and swing high
+      let tLow  = currentCandles[0], tHigh = currentCandles[currentCandles.length - 1];
+      let dLow  = Infinity, dHigh = Infinity;
+      for (const c of currentCandles) {
+        const dl = Math.abs(c.low  - pLow);
+        const dh = Math.abs(c.high - pHigh);
+        if (dl < dLow)  { dLow  = dl; tLow  = c; }
+        if (dh < dHigh) { dHigh = dh; tHigh = c; }
+      }
+      overlayDrawings = [{
+        type: 'fib',
+        time1: tLow.time,  price1: pLow,
+        time2: tHigh.time, price2: pHigh,
+        color: '#d4af37', lineWidth: 1.5, visible: true,
+      }];
+    }
+
+    redrawAll();
+  }
+
+  function activateTradeOverlay(trade, conf) {
+    _activeTrade = { ...trade, conf };
+    _overlayEntry = true; _overlayPanelOpen = false; _overlayAnalysisOn = true;
+    _overlayComponents = { sr: true, fib: true };
+    document.getElementById('tradeOverlayBar').style.display = 'flex';
+    document.getElementById('btnOverlayEntry').classList.add('active');
+    document.getElementById('btnOverlayAnalysis').classList.add('active');
+    document.getElementById('btnOverlayAnalysisArrow').classList.remove('active');
+    document.getElementById('overlayAnalysisPanel').style.display = 'none';
+    document.getElementById('ovChkSR').checked  = true;
+    document.getElementById('ovChkFib').checked = true;
+    _refreshTradeOverlayLines();
+  }
+
+  function drawChevToolsForIdea(idea) {
+    chevPriceLines.forEach(line => candleSeries.removePriceLine(line));
+    chevPriceLines = [];
+    if (!chevToolsOn) return;
+    const lines = [
+      { price: parseFloat(idea.entry), color: '#9598a1', title: 'Entry' },
+      { price: parseFloat(idea.sl), color: '#f23645', title: 'SL' },
+      { price: parseFloat(idea.tp), color: '#089981', title: 'TP' },
+    ];
+    lines.forEach(l => {
+      chevPriceLines.push(candleSeries.createPriceLine({ price: l.price, color: l.color, lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: l.title }));
+    });
+    const tagList = (idea.tags || '').split(',').filter(Boolean).map(t => TAG_NAMES[t.trim().toUpperCase()] || t).join(' · ');
+    chevBanner.innerHTML = `<strong>${idea.pair} ${idea.direction}</strong><br>${tagList || 'No tags logged'}`;
+    chevBanner.style.display = 'block';
+  }
+
+  async function selectIdea(idea) {
+    activeIdeaRow = idea.row;
+    document.querySelectorAll('.ideaCard').forEach(c => c.classList.toggle('activeIdea', c.dataset.row === String(idea.row)));
+    const type = idea.pair.endsWith('USDT') ? 'crypto' : (idea.pair.includes('/') ? 'forex' : 'stock');
+    currentSymbol = idea.pair;
+    currentType = type;
+    drawings = loadDrawings(currentSymbol);
+    updateObjTree();
+    _syncDrawings(currentSymbol); _subscribeDrawings(currentSymbol);
+    watchlistInner.querySelectorAll('.watchRow').forEach(r => r.classList.remove('active'));
+    clearChevTools();
+    await loadChart(currentSymbol, currentTf, currentType);
+    startPolling();
+    drawChevToolsForIdea(idea);
+  }
+
+  function renderChevIdeas() {
+    if (!currentIdeas.length) {
+      chevIdeasEl.innerHTML = '<div class="emptyNote">No pending ideas right now.</div>';
+      return;
+    }
+    chevIdeasEl.innerHTML = currentIdeas.map(idea => {
+      const tagList = (idea.tags || '').split(',').filter(Boolean).map(t => TAG_NAMES[t.trim().toUpperCase()] || t).join(' · ');
+      return `
+        <div class="ideaCard${idea.row === activeIdeaRow ? ' activeIdea' : ''}" data-row="${idea.row}">
+          <div class="ideaHeader"><span class="ideaPair">${idea.pair} ${idea.direction}</span><span class="ideaType">${idea.trade_type || ''}</span></div>
+          <div class="ideaTags">${tagList || 'No confluence tags logged'}</div>
+          <div class="ideaMeta"><span class="e">E ${idea.entry}</span><span class="s">SL ${idea.sl}</span><span class="t">TP ${idea.tp}</span></div>
+        </div>`;
+    }).join('');
+    chevIdeasEl.querySelectorAll('.ideaCard').forEach(card => {
+      card.addEventListener('click', () => {
+        const idea = currentIdeas.find(i => String(i.row) === card.dataset.row);
+        if (idea) selectIdea(idea);
+      });
+    });
+  }
+
+  async function refreshChevsCorner() {
+    try {
+      const res = await fetch(API_BASE + '/api/pending');
+      if (!res.ok) throw new Error('no response');
+      currentIdeas = await res.json();
+      renderChevIdeas();
+    } catch (e) {
+      chevIdeasEl.innerHTML = '<div class="emptyNote">Can\'t reach Dexter for pending ideas.</div>';
+    }
+  }
+
+  const chevToolsToggle = document.getElementById('chevToolsToggle');
+  chevToolsToggle.classList.add('active');
+  chevToolsToggle.addEventListener('click', () => {
+    chevToolsOn = !chevToolsOn;
+    chevToolsToggle.classList.toggle('active', chevToolsOn);
+    if (!chevToolsOn) {
+      chevPriceLines.forEach(line => candleSeries.removePriceLine(line));
+      chevPriceLines = [];
+      chevBanner.style.display = 'none';
+    } else if (activeIdeaRow) {
+      const idea = currentIdeas.find(i => i.row === activeIdeaRow);
+      if (idea) drawChevToolsForIdea(idea);
+    }
+  });
+
+  /* ============================================================
+     CHEV CHAT
+     ============================================================ */
+  const rightPanel = document.getElementById('rightPanel');
+  const rightToggle = document.getElementById('rightToggle');
+  const chatListItemsEl = document.getElementById('chatListItems');
+  const chatMessagesEl = document.getElementById('chatMessages');
+  const chatInput = document.getElementById('chatInput');
+  const chatSendBtn = document.getElementById('chatSendBtn');
+  const newChatBtn = document.getElementById('newChatBtn');
+
+  function loadChats() {
+    const saved = localStorage.getItem('chevChats');
+    return saved ? JSON.parse(saved) : {};
+  }
+  function saveChats() { localStorage.setItem('chevChats', JSON.stringify(chats)); }
+
+  let chats = loadChats();
+  let activeChatId = localStorage.getItem('chevActiveChatId');
+  if (!activeChatId || !chats[activeChatId]) {
+    activeChatId = 'chat-' + Date.now();
+    chats[activeChatId] = { title: 'New chat', messages: [] };
+    saveChats();
+  }
+
+  rightToggle.addEventListener('click', () => rightPanel.classList.toggle('open'));
+
+  function renderChatList() {
+    chatListItemsEl.innerHTML = Object.entries(chats).map(([id, c]) => `
+      <div class="chatListItem${id === activeChatId ? ' active' : ''}" data-id="${id}">${c.title}</div>
+    `).join('');
+    chatListItemsEl.querySelectorAll('.chatListItem').forEach(item => {
+      item.addEventListener('click', () => {
+        activeChatId = item.dataset.id;
+        localStorage.setItem('chevActiveChatId', activeChatId);
+        renderChatList();
+        renderMessages();
+      });
+    });
+  }
+
+  function renderMessages() {
+    const msgs = chats[activeChatId].messages;
+    chatMessagesEl.innerHTML = msgs.map(m => `<div class="msg ${m.role}"><div class="who">${m.role === 'user' ? 'You' : 'Chev'}</div>${m.content}</div>`).join('');
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  newChatBtn.addEventListener('click', () => {
+    const id = 'chat-' + Date.now();
+    chats[id] = { title: 'New chat', messages: [] };
+    activeChatId = id;
+    localStorage.setItem('chevActiveChatId', id);
+    saveChats();
+    renderChatList();
+    renderMessages();
+  });
+
+  async function sendChatMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    const chat = chats[activeChatId];
+    chat.messages.push({ role: 'user', content: text });
+    if (chat.title === 'New chat') chat.title = text.slice(0, 24);
+    saveChats();
+    renderChatList();
+    renderMessages();
+
+    chatMessagesEl.innerHTML += `<div class="msg assistant"><div class="who">Chev</div>...</div>`;
+    try {
+      const res = await fetch(getOpenWebUIUrl(), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getOpenWebUIKey()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: getChevModelId(), messages: chat.messages.map(m => ({ role: m.role, content: m.content })) }),
+      });
+      const data = await res.json();
+      const reply = data.choices[0].message.content;
+      chat.messages.push({ role: 'assistant', content: reply });
+      saveChats();
+      renderMessages();
+    } catch (e) {
+      chat.messages.push({ role: 'assistant', content: 'Connection error - check Open WebUI is running.' });
+      renderMessages();
+    }
+  }
+
+  chatSendBtn.addEventListener('click', sendChatMessage);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+  });
+
+  renderChatList();
+  renderMessages();
+
+  /* ============================================================
+     TIMEFRAME BUTTONS + INITIAL LOAD
+     ============================================================ */
+  const tfButtons = Array.from(document.querySelectorAll('[data-tf]'));
+  tfButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTf = btn.dataset.tf;
+      tfButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadChart(currentSymbol, currentTf, currentType).then(startPolling).then(() => {
+        if (activeIdeaRow) {
+          const idea = currentIdeas.find(i => i.row === activeIdeaRow);
+          if (idea) drawChevToolsForIdea(idea);
+        }
+      });
+    });
+  });
+
+  loadChart(currentSymbol, currentTf, currentType).then(startPolling);
+
+  /* ============================================================
+     DRAWING TOOLS v3
+     — two-click workflow, magnet snap indicator, drag-to-move,
+       right-side extrapolation, personalization context menu,
+       object tree, volume profile, measure tool
+     ============================================================ */
+  const drawCanvas = document.getElementById('drawingCanvas');
+  const dctx = drawCanvas.getContext('2d');
+
+  const TOOL_COLORS = {
+    hline:'#f0b429', ray:'#2962ff', trendline:'#9598a1',
+    rect:'#2962ff', fib:'#d4af37', channel:'#a78bfa',
+    vp:'#2962ff', measure:'#089981', pencil:'#e0e0e0',
+  };
+
+  let activeTool   = null;
+  let magnetOn     = true;
+  let cursorPos    = null; // tracks mouse for measure crosshairs
+  let pencilDrawing = false;
+  let pencilPoints  = [];
+  let drawings     = loadDrawings(currentSymbol);
+  _syncDrawings(currentSymbol); _subscribeDrawings(currentSymbol); // pull latest from Firebase + live updates
+  let previewShape = null;
+  let magnetDot    = null;  // {x,y} snap point shown before click
+  let overlayDrawings = []; // temporary analysis overlay (not saved)
+
+  // Undo
+  const MAX_UNDO = 10;
+  let undoStack = [];
+  function pushUndo() {
+    undoStack.push(JSON.parse(JSON.stringify(drawings)));
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+  }
+
+  // Two-click state
+  let clickCount    = 0;
+  let firstClickPos = null;
+
+  // Channel 3-click state
+  let channelBase = null;
+  let channelStep = 0;
+
+  // Drag state
+  let dragMode     = false;
+  let dragIndex    = -1;
+  let dragEndpoint = null;  // null=whole shape, 1=ep1, 2=ep2
+  let dragStartRaw = null;
+  let dragOrigDraw = null;
+  let hoverIndex   = -1;
+  let hoverXPos    = null;
+  let hoverEP      = null;  // which endpoint is under the cursor (null/1/2)
+
+  // Context-menu target
+  let ctxTarget = -1;
+
+  function _drawFbUrl(sym) {
+    return `${FIREBASE_BASE}/drawings/${(sym||currentSymbol).replace('/','_')}.json`;
+  }
+  function loadDrawings(sym) {
+    try { return JSON.parse(localStorage.getItem('chevDrawings_' + sym) || '[]'); } catch(e) { return []; }
+  }
+  function saveDrawings(sym) {
+    sym = sym || currentSymbol;
+    const payload = JSON.stringify(drawings);
+    localStorage.setItem('chevDrawings_' + sym, payload);
+    fetch(_drawFbUrl(sym), { method:'PUT', body:payload, headers:{'Content-Type':'application/json'} }).catch(()=>{});
+  }
+  // Pull drawings from Firebase and update the canvas (called when switching symbols)
+  async function _syncDrawings(sym) {
+    try {
+      const r = await fetch(_drawFbUrl(sym));
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!Array.isArray(d)) return;
+      drawings = d;
+      localStorage.setItem('chevDrawings_' + sym, JSON.stringify(d));
+      updateObjTree();
+    } catch(e) {}
+  }
+  // Real-time SSE listener — friend's drawings appear on your canvas instantly
+  let _drawStream = null;
+  function _subscribeDrawings(sym) {
+    if (_drawStream) { _drawStream.close(); _drawStream = null; }
+    const sseUrl = _drawFbUrl(sym).replace('.json', '.json?stream=true&timeout=600000');
+    try {
+      _drawStream = new EventSource(sseUrl);
+      _drawStream.addEventListener('put', ev => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.path === '/' && msg.data !== undefined) {
+            drawings = Array.isArray(msg.data) ? msg.data : [];
+            localStorage.setItem('chevDrawings_' + sym, JSON.stringify(drawings));
+            updateObjTree();
+          }
+        } catch(e) {}
+      });
+      _drawStream.onerror = () => {};
+    } catch(e) {}
+  }
+  function dv(d, k, def) { return d[k] !== undefined ? d[k] : def; }
+
+  /* ---- Canvas sizing ---- */
+  function syncCanvasSize() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = chartWrap.clientWidth;
+    const h = chartWrap.clientHeight;
+    drawCanvas.width  = Math.round(w * dpr);
+    drawCanvas.height = Math.round(h * dpr);
+    drawCanvas.style.width  = w + 'px';
+    drawCanvas.style.height = h + 'px';
+    dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  syncCanvasSize();
+  window.addEventListener('resize', syncCanvasSize);
+
+  /* ---- Coordinate helpers with right-side extrapolation ---- */
+  function priceToY(p) { return candleSeries.priceToCoordinate(p); }
+  function yToPrice(y) { return candleSeries.coordinateToPrice(y); }
+
+  function _bm() {
+    const n = currentCandles.length;
+    if (n < 2) return null;
+    const la = currentCandles[n-1], pr = currentCandles[n-2];
+    const lx = chart.timeScale().timeToCoordinate(la.time);
+    const px = chart.timeScale().timeToCoordinate(pr.time);
+    if (lx==null||px==null||lx===px) return null;
+    return { lx, lt:la.time, ppb:lx-px, bd:la.time-pr.time };
+  }
+
+  function timeToX(t) {
+    const x = chart.timeScale().timeToCoordinate(t);
+    if (x!=null) return x;
+    const m = _bm(); if (!m) return null;
+    return m.lx + ((t - m.lt) / m.bd) * m.ppb;
+  }
+
+  function xToTime(x) {
+    const t = chart.timeScale().coordinateToTime(x);
+    if (t!=null) return t;
+    const m = _bm(); if (!m) return null;
+    return Math.round(m.lt + ((x - m.lx) / m.ppb) * m.bd);
+  }
+
+  /* ---- Channel: interpolate base-line price at a given time ---- */
+  function basePriceAt(base, time) {
+    if (base.time2 === base.time1) return base.price1;
+    return base.price1 + (base.price2 - base.price1) * (time - base.time1) / (base.time2 - base.time1);
+  }
+
+  /* ---- Magnet ---- */
+  function snapMagnet(x, y) {
+    if (!magnetOn || !currentCandles.length) return { x, y, hit:false };
+    const R = 22;
+    let best=R, bx=x, by=y, hit=false;
+    for (const c of currentCandles) {
+      const cx = timeToX(c.time);
+      if (cx==null || Math.abs(cx-x) > R*2) continue;
+      for (const p of [c.high, c.low, c.open, c.close]) {
+        const cy = priceToY(p); if (cy==null) continue;
+        const d = Math.hypot(cx-x, cy-y);
+        if (d < best) { best=d; bx=cx; by=cy; hit=true; }
+      }
+    }
+    return { x:bx, y:by, hit };
+  }
+
+  function rawPos(e) {
+    const r = chartWrap.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  /* ---- Volume Profile computation ---- */
+  function computeVP(t1, t2, N) {
+    N = N||40;
+    const lo=Math.min(t1,t2), hi=Math.max(t1,t2);
+    const cc = currentCandles.filter(c=>c.time>=lo&&c.time<=hi);
+    if (!cc.length) return null;
+    const pMin=Math.min(...cc.map(c=>c.low)), pMax=Math.max(...cc.map(c=>c.high));
+    const bs=(pMax-pMin)/N;
+    const vols=Array(N).fill(0);
+    for (const c of cc) {
+      const vol=c.volume||0;
+      for (let i=0;i<N;i++) {
+        const bLo=pMin+i*bs, bHi=bLo+bs;
+        const ov=Math.max(0,Math.min(c.high,bHi)-Math.max(c.low,bLo));
+        const ratio=c.high>c.low?ov/(c.high-c.low):1/N;
+        vols[i]+=vol*ratio;
+      }
+    }
+    return { vols, pMin, bs, N };
+  }
+
+  /* ---- Measure helpers ---- */
+  function countBars(t1,t2) {
+    const lo=Math.min(t1,t2), hi=Math.max(t1,t2);
+    return currentCandles.filter(c=>c.time>=lo&&c.time<=hi).length;
+  }
+  function fmtTime(s) {
+    s=Math.abs(s);
+    if (s<3600) return Math.round(s/60)+'m';
+    if (s<86400) return (s/3600).toFixed(1)+'h';
+    return (s/86400).toFixed(1)+'d';
+  }
+
+  /* ---- Hit testing ---- */
+  function _ds(px,py,ax,ay,bx,by) {
+    const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;
+    if (!l2) return Math.hypot(px-ax,py-ay);
+    const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l2));
+    return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+  }
+
+  function hitTest(mx,my) {
+    const H=9;
+    for (let i=drawings.length-1;i>=0;i--) {
+      const d=drawings[i];
+      if (d.visible===false) continue;
+      if (d.type==='hline') {
+        const y=priceToY(d.price); if (y!=null&&Math.abs(my-y)<H) return i;
+      } else if (d.type==='ray') {
+        const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+        if (x1==null||y1==null||x2==null||y2==null) continue;
+        if (_ds(mx,my,x1,y1,x1+(x2-x1)*200,y1+(y2-y1)*200)<H) return i;
+      } else if (d.type==='trendline') {
+        const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+        if (x1==null||y1==null||x2==null||y2==null) continue;
+        if (_ds(mx,my,x1,y1,x2,y2)<H) return i;
+      } else if (d.type==='vp') {
+        const _ay=18,x1=timeToX(d.time1),x2=timeToX(d.time2);
+        if (x1==null||x2==null) continue;
+        if (Math.hypot(mx-x1,my-_ay)<H*2||Math.hypot(mx-x2,my-_ay)<H*2) return i;
+      } else if (d.type==='rect'||d.type==='measure') {
+        const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+        if (x1==null||y1==null||x2==null||y2==null) continue;
+        const nx=Math.min(x1,x2),xx=Math.max(x1,x2),ny=Math.min(y1,y2),xy=Math.max(y1,y2);
+        if (mx>=nx-H&&mx<=xx+H&&my>=ny-H&&my<=xy+H&&(mx<=nx+H||mx>=xx-H||my<=ny+H||my>=xy-H)) return i;
+      } else if (d.type==='fib') {
+        // Only hit at the two anchor endpoints — fib lines are too plentiful to safely hit
+        const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+        if (x1==null||y1==null||x2==null||y2==null) continue;
+        if (Math.hypot(mx-x1,my-y1)<H*1.5) return i;
+        if (Math.hypot(mx-x2,my-y2)<H*1.5) return i;
+      } else if (d.type==='channel') {
+        const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+        if (x1==null||y1==null||x2==null||y2==null) continue;
+        if (Math.hypot(mx-x1,my-y1)<H*2||Math.hypot(mx-x2,my-y2)<H*2) return i;
+        if (d.priceOffset!=null) {
+          const y1b=priceToY(d.price1+d.priceOffset),y2b=priceToY(d.price2+d.priceOffset);
+          if (y1b!=null&&y2b!=null&&Math.hypot(mx-(x1+x2)/2,my-(y1b+y2b)/2)<H*2) return i;
+        }
+      } else if (d.type==='pencil') {
+        if (!d.points||d.points.length<2) continue;
+        for (let j=0;j<d.points.length-1;j++) {
+          const ax=timeToX(d.points[j].time),ay=priceToY(d.points[j].price);
+          const bx=timeToX(d.points[j+1].time),by=priceToY(d.points[j+1].price);
+          if (ax==null||ay==null||bx==null||by==null) continue;
+          if (_ds(mx,my,ax,ay,bx,by)<H) return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  /* ---- Endpoint hit detection ---- */
+  function getEndpointHit(mx, my, d) {
+    const EP = 10;
+    if (['trendline','ray','fib'].includes(d.type)) {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1!=null&&y1!=null&&Math.hypot(mx-x1,my-y1)<EP) return 1;
+      if (x2!=null&&y2!=null&&Math.hypot(mx-x2,my-y2)<EP) return 2;
+    } else if (d.type==='channel') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1!=null&&y1!=null&&Math.hypot(mx-x1,my-y1)<EP) return 1;
+      if (x2!=null&&y2!=null&&Math.hypot(mx-x2,my-y2)<EP) return 2;
+      if (d.priceOffset!=null) {
+        const y1b=priceToY(d.price1+d.priceOffset),y2b=priceToY(d.price2+d.priceOffset);
+        if (y1b!=null&&y2b!=null&&Math.hypot(mx-(x1+x2)/2,my-(y1b+y2b)/2)<EP) return 3;
+      }
+    } else if (d.type==='vp') {
+      const _ay=18,x1=timeToX(d.time1),x2=timeToX(d.time2);
+      if (x1!=null&&Math.hypot(mx-x1,my-_ay)<EP) return 1;
+      if (x2!=null&&Math.hypot(mx-x2,my-_ay)<EP) return 2;
+    }
+    return null;
+  }
+
+  /* ---- Rendering ---- */
+  function redrawAll() {
+    dctx.clearRect(0,0,drawCanvas.clientWidth,drawCanvas.clientHeight);
+    drawings.forEach((d,i)=>{ if (d.visible!==false) renderShape(dctx,d,false,i===hoverIndex&&!activeTool); });
+    overlayDrawings.forEach(d=>renderShape(dctx,d,false,false));
+    // Crosshairs — faint X+Y guidelines for every active tool
+    if (activeTool&&cursorPos) {
+      const crossCol=TOOL_COLORS[activeTool]||'#9598a1';
+      dctx.save(); dctx.globalAlpha=0.07; dctx.strokeStyle=crossCol;
+      dctx.lineWidth=1; dctx.setLineDash([4,4]);
+      dctx.beginPath(); dctx.moveTo(cursorPos.x,0); dctx.lineTo(cursorPos.x,drawCanvas.clientHeight); dctx.stroke();
+      dctx.beginPath(); dctx.moveTo(0,cursorPos.y); dctx.lineTo(drawCanvas.clientWidth,cursorPos.y); dctx.stroke();
+      dctx.restore();
+    }
+    // Trade entry dot overlay
+    if (_overlayEntry && _activeTrade && _activeTrade.open_ts && _activeTrade.entry != null) {
+      const tsStr = _activeTrade.open_ts; // "2026-06-29 02:15:00"
+      const tsUnix = Math.floor(new Date(tsStr.replace(' ','T')).getTime() / 1000);
+      // find closest candle
+      let best = null, bestDist = Infinity;
+      for (const c of currentCandles) {
+        const d = Math.abs(c.time - tsUnix);
+        if (d < bestDist) { bestDist = d; best = c; }
+      }
+      if (best) {
+        const ex = timeToX(best.time);
+        const isLong = _activeTrade.direction.toLowerCase().includes('long');
+        const dotPrice = isLong ? best.low : best.high;
+        const ey = priceToY(dotPrice);
+        if (ex != null && ey != null) {
+          const offset = isLong ? 8 : -8;
+          const dotY = ey + offset;
+          dctx.save();
+          dctx.fillStyle = '#d4af37';
+          dctx.shadowColor = '#d4af37'; dctx.shadowBlur = 4;
+          dctx.beginPath();
+          if (isLong) {
+            dctx.moveTo(ex, ey + 2);
+            dctx.lineTo(ex - 3, dotY + 2);
+            dctx.lineTo(ex + 3, dotY + 2);
+          } else {
+            dctx.moveTo(ex, ey - 2);
+            dctx.lineTo(ex - 3, dotY - 2);
+            dctx.lineTo(ex + 3, dotY - 2);
+          }
+          dctx.closePath(); dctx.fill();
+          dctx.font = '7px "Share Tech Mono",monospace';
+          dctx.fillStyle = '#d4af37'; dctx.shadowBlur = 0;
+          dctx.textAlign = 'center'; dctx.textBaseline = isLong ? 'top' : 'bottom';
+          dctx.fillText(`Entry ${_activeTrade.entry}`, ex, dotY + (isLong ? 3 : -3));
+          dctx.restore();
+        }
+      }
+    }
+
+    if (activeTool&&clickCount===1&&firstClickPos) {
+      const ax=timeToX(firstClickPos.time),ay=priceToY(firstClickPos.price);
+      if (ax!=null&&ay!=null) {
+        const col=TOOL_COLORS[activeTool]||'#fff';
+        dctx.save(); dctx.shadowColor=col; dctx.shadowBlur=8; dctx.fillStyle=col;
+        dctx.beginPath(); dctx.arc(ax,ay,5,0,Math.PI*2); dctx.fill(); dctx.restore();
+      }
+    }
+    if (previewShape) renderShape(dctx,previewShape,true,false);
+    if (magnetDot&&activeTool) {
+      dctx.save();
+      dctx.strokeStyle='#fff'; dctx.lineWidth=1.5; dctx.fillStyle='rgba(255,255,255,0.85)';
+      dctx.shadowColor='#fff'; dctx.shadowBlur=5;
+      dctx.beginPath(); dctx.arc(magnetDot.x,magnetDot.y,4,0,Math.PI*2);
+      dctx.fill(); dctx.stroke(); dctx.restore();
+    }
+    // Hover-X: faint delete hint on hovered drawing
+    if (hoverIndex>=0&&!activeTool&&drawings[hoverIndex]) {
+      _drawHoverX(dctx,drawings[hoverIndex]);
+    } else { hoverXPos=null; }
+  }
+
+  function _drawHoverX(ctx,d) {
+    let cx=null,cy=null;
+    if (d.type==='hline') {
+      const ly=priceToY(d.price);
+      if (ly!=null) { cx=drawCanvas.clientWidth-56; cy=Math.max(10,ly-10); }
+    } else if (d.type==='trendline'||d.type==='ray'||d.type==='channel') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1);
+      if (x1!=null&&y1!=null) { cx=Math.max(12,x1+12); cy=Math.max(10,y1-12); }
+    } else if (d.type==='vp') {
+      // Place X just to the right of the rightmost anchor circle at y=18
+      const x1=timeToX(d.time1),x2=timeToX(d.time2);
+      if (x1!=null&&x2!=null) { cx=Math.min(drawCanvas.clientWidth-12,Math.max(x1,x2)+12); cy=26; }
+    } else {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1!=null&&y1!=null&&x2!=null&&y2!=null) {
+        cx=Math.min(drawCanvas.clientWidth-12,Math.max(x1,x2)+10);
+        cy=Math.max(10,Math.min(y1,y2)-10);
+      }
+    }
+    if (cx==null||cy==null) { hoverXPos=null; return; }
+    hoverXPos={cx,cy};
+    const s=2;
+    ctx.save(); ctx.globalAlpha=0.85; ctx.strokeStyle='#f23645'; ctx.lineWidth=1.2;
+    ctx.lineCap='round';
+    ctx.fillStyle='rgba(28,32,48,0.88)'; ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx-s,cy-s); ctx.lineTo(cx+s,cy+s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+s,cy-s); ctx.lineTo(cx-s,cy+s); ctx.stroke();
+    ctx.restore();
+  }
+
+  function renderShape(ctx,d,isPreview,highlight) {
+    if (d.visible===false) return;
+    ctx.save();
+    ctx.globalAlpha=isPreview?0.6:1;
+    const col=highlight?'#fff':(d.color||TOOL_COLORS[d.type]||'#9598a1');
+    const lw=(highlight?1.6:1)*dv(d,'lineWidth',1.5);
+
+    if (d.type==='hline') {
+      const y=priceToY(d.price); if (y==null){ctx.restore();return;}
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(drawCanvas.clientWidth,y); ctx.stroke();
+      const prStr=d.price.toFixed(5), txt=dv(d,'text',''), fs=dv(d,'fontSize',9), ta=dv(d,'textAlign','right');
+      const full=txt?`${txt}  ${prStr}`:prStr;
+      const lx=ta==='left'?4:ta==='center'?drawCanvas.clientWidth/2:drawCanvas.clientWidth-4;
+      _lbl(ctx,full,lx,y,col,ta,fs);
+    }
+
+    else if (d.type==='ray') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1==null||y1==null||x2==null||y2==null){ctx.restore();return;}
+      const W=drawCanvas.clientWidth,H=drawCanvas.clientHeight,dx=x2-x1,dy=y2-y1;
+      let tM=1e9;
+      if (dx>0) tM=Math.min(tM,(W-x1)/dx); else if (dx<0) tM=Math.min(tM,-x1/dx);
+      if (dy>0) tM=Math.min(tM,(H-y1)/dy); else if (dy<0) tM=Math.min(tM,-y1/dy);
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1+dx*Math.max(0,tM),y1+dy*Math.max(0,tM)); ctx.stroke();
+      const _rayR=highlight?(hoverEP===1?6:4):3;
+      ctx.fillStyle=highlight&&hoverEP===1?'#fff':col;
+      ctx.beginPath(); ctx.arc(x1,y1,_rayR,0,Math.PI*2); ctx.fill();
+      const txt=dv(d,'text',''); if (txt) _lbl(ctx,txt,(x1+x2)/2,(y1+y2)/2,col,'center',dv(d,'fontSize',9));
+    }
+
+    else if (d.type==='trendline') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1==null||y1==null||x2==null||y2==null){ctx.restore();return;}
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      [[x1,y1,1],[x2,y2,2]].forEach(([ax,ay,ep])=>{
+        const r=highlight?(hoverEP===ep?6:4):3;
+        ctx.fillStyle=highlight&&hoverEP===ep?'#fff':col;
+        ctx.beginPath(); ctx.arc(ax,ay,r,0,Math.PI*2); ctx.fill();
+      });
+      const txt=dv(d,'text',''), ta=dv(d,'textAlign','center'), fs=dv(d,'fontSize',9);
+      if (txt) { const lx=ta==='left'?Math.min(x1,x2):ta==='right'?Math.max(x1,x2):(x1+x2)/2; _lbl(ctx,txt,lx,(y1+y2)/2,col,ta,fs); }
+    }
+
+    else if (d.type==='rect') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1==null||y1==null||x2==null||y2==null){ctx.restore();return;}
+      const fo=dv(d,'fillOpacity',0.12);
+      ctx.save(); ctx.globalAlpha=(isPreview?.6:1)*fo; ctx.fillStyle=col; ctx.fillRect(x1,y1,x2-x1,y2-y1); ctx.restore();
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]); ctx.strokeRect(x1,y1,x2-x1,y2-y1);
+      const txt=dv(d,'text',''), ta=dv(d,'textAlign','center'), fs=dv(d,'fontSize',9);
+      if (txt) { const lx=ta==='left'?Math.min(x1,x2)+4:ta==='right'?Math.max(x1,x2)-4:(x1+x2)/2; _lbl(ctx,txt,lx,(y1+y2)/2,col,ta,fs); }
+    }
+
+    else if (d.type==='fib') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1==null||y1==null||x2==null||y2==null){ctx.restore();return;}
+      const pr=d.price1-d.price2, xL=Math.min(x1,x2), xR=drawCanvas.clientWidth;
+      const gpHY=priceToY(d.price1-pr*0.618), gpLY=priceToY(d.price1-pr*0.65);
+      if (gpHY!=null&&gpLY!=null) {
+        const top=Math.min(gpHY,gpLY),bot=Math.max(gpHY,gpLY);
+        ctx.save(); ctx.globalAlpha=(isPreview?.6:1)*.3; ctx.fillStyle='#d4af37';
+        ctx.fillRect(xL,top,xR-xL,bot-top); ctx.restore();
+        ctx.save(); ctx.globalAlpha=(isPreview?.6:1)*.85;
+        ctx.font='8px "Share Tech Mono",monospace'; ctx.fillStyle='#d4af37';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('GOLDEN POCKET',xL+(xR-xL)*.5,(top+bot)*.5); ctx.restore();
+      }
+      for (const {l,lb} of [{l:.5,lb:'0.5'},{l:.786,lb:'0.786'}]) {
+        const fp=d.price1-pr*l, fy=priceToY(fp); if (fy==null) continue;
+        ctx.strokeStyle='#5d6068'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+        ctx.beginPath(); ctx.moveTo(xL,fy); ctx.lineTo(xR,fy); ctx.stroke(); ctx.setLineDash([]);
+        _lbl(ctx,`${lb}  ${fp.toFixed(5)}`,xR-4,fy,'#5d6068','right',9);
+      }
+      ctx.setLineDash([]);
+      // Anchor dots — ghosted unless hovered directly
+      for (const [ax,ay,ep] of [[x1,y1,1],[x2,y2,2]]) {
+        const hot=highlight&&hoverEP===ep;
+        const r=hot?7:4;
+        ctx.save();
+        ctx.globalAlpha=hot?1:0.35;
+        ctx.fillStyle='#fff'; ctx.strokeStyle=hot?'#fff':col; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.arc(ax,ay,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    else if (d.type==='channel') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1==null||y1==null||x2==null||y2==null){ctx.restore();return;}
+      const y1b=priceToY(d.price1+d.priceOffset),y2b=priceToY(d.price2+d.priceOffset);
+      if (y1b!=null&&y2b!=null) {
+        ctx.save(); ctx.globalAlpha=(isPreview?.6:1)*.08; ctx.fillStyle=col;
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x2,y2b); ctx.lineTo(x1,y1b); ctx.closePath(); ctx.fill(); ctx.restore();
+        ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(x1,y1b); ctx.lineTo(x2,y2b); ctx.stroke();
+        ctx.strokeStyle=col; ctx.lineWidth=Math.max(1,lw*.55); ctx.setLineDash([2,5]);
+        ctx.save(); ctx.globalAlpha=(isPreview?.6:1)*.45;
+        ctx.beginPath(); ctx.moveTo(x1,(y1+y1b)/2); ctx.lineTo(x2,(y2+y2b)/2); ctx.stroke(); ctx.restore();
+      }
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      // Top anchor dots (ep1/ep2)
+      [[x1,y1,1],[x2,y2,2]].forEach(([ax,ay,ep])=>{
+        const hot=highlight&&hoverEP===ep;
+        ctx.save(); ctx.fillStyle=hot?'#fff':col; ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=hot?1:0.7;
+        ctx.beginPath(); ctx.arc(ax,ay,hot?6:3,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+      });
+      // Bottom anchor: single midpoint dot (ep3)
+      if (y1b!=null&&y2b!=null) {
+        const xM=(x1+x2)/2, yMb=(y1b+y2b)/2, hot=highlight&&hoverEP===3;
+        ctx.save(); ctx.fillStyle=hot?'#fff':col; ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=hot?1:0.7;
+        ctx.beginPath(); ctx.arc(xM,yMb,hot?6:3,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+      }
+      const txt=dv(d,'text',''); if (txt) _lbl(ctx,txt,(x1+x2)/2,(y1+y2)/2,col,'center',dv(d,'fontSize',9));
+    }
+
+    else if (d.type==='vp') {
+      const x1=timeToX(d.time1),x2=timeToX(d.time2);
+      if (x1==null||x2==null){ctx.restore();return;}
+      const vp=computeVP(d.time1,d.time2,40); if (!vp){ctx.restore();return;}
+      const xL=Math.min(x1,x2), xR=Math.max(x1,x2);
+      const maxV=Math.max(...vp.vols,1), maxW=Math.abs(x2-x1)*.38;
+      const pocI=vp.vols.reduce((b,v,i)=>v>vp.vols[b]?i:b,0);
+      const vpCol=d.color||'#2962ff'; // always use original color — highlight must not turn bars white
+      vp.vols.forEach((v,i)=>{
+        const pr=vp.pMin+(i+.5)*vp.bs, cy=priceToY(pr); if (cy==null) return;
+        const bH=Math.max(1,Math.abs((priceToY(vp.pMin+i*vp.bs)||cy)-(priceToY(vp.pMin+(i+1)*vp.bs)||cy)));
+        ctx.save(); ctx.globalAlpha=(isPreview?.6:1)*(i===pocI?.85:.4);
+        ctx.fillStyle=i===pocI?'#f0b429':vpCol;
+        ctx.fillRect(xL,cy-bH/2,(v/maxV)*maxW,bH); ctx.restore();
+      });
+      const pocPr=vp.pMin+(pocI+.5)*vp.bs, pocY=priceToY(pocPr);
+      if (pocY!=null) {
+        ctx.strokeStyle='#f0b429'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(xL,pocY); ctx.lineTo(xR,pocY); ctx.stroke(); ctx.setLineDash([]);
+        _lbl(ctx,`POC ${pocPr.toFixed(5)}`,xL+4,pocY,'#f0b429','left',9);
+      }
+      // Faint vertical origin lines (5% opacity) — shows where the anchor boundaries are
+      const _vpAnchorY=18;
+      ctx.save(); ctx.globalAlpha=0.15; ctx.strokeStyle=vpCol; ctx.lineWidth=1; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(xL,_vpAnchorY); ctx.lineTo(xL,ctx.canvas.clientHeight); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xR,_vpAnchorY); ctx.lineTo(xR,ctx.canvas.clientHeight); ctx.stroke();
+      ctx.restore();
+      // Anchor circles at the top
+      [xL,xR].forEach((ax,i)=>{
+        const hot=highlight&&hoverEP===(i===0?1:2);
+        ctx.save(); ctx.fillStyle=hot?'#fff':vpCol; ctx.strokeStyle=vpCol; ctx.lineWidth=1.5;
+        ctx.globalAlpha=hot?1:0.7;
+        ctx.beginPath(); ctx.arc(ax,_vpAnchorY,hot?6:4,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    else if (d.type==='measure') {
+      const x1=timeToX(d.time1),y1=priceToY(d.price1),x2=timeToX(d.time2),y2=priceToY(d.price2);
+      if (x1==null||y1==null||x2==null||y2==null){ctx.restore();return;}
+      const pd=d.price2-d.price1, up=pd>=0, ac=up?'#089981':'#f23645';
+      const pct=(pd/Math.abs(d.price1)*100).toFixed(2);
+      const bars=countBars(d.time1,d.time2), td=fmtTime(d.time2-d.time1);
+      ctx.save(); ctx.globalAlpha=(isPreview?.6:1)*.18; ctx.fillStyle=ac;
+      ctx.fillRect(x1,Math.min(y1,y2),x2-x1,Math.abs(y2-y1)); ctx.restore();
+      ctx.strokeStyle=ac; ctx.lineWidth=lw; ctx.setLineDash([3,3]);
+      ctx.strokeRect(x1,Math.min(y1,y2),x2-x1,Math.abs(y2-y1)); ctx.setLineDash([]);
+      ctx.font='9px "Share Tech Mono",monospace'; ctx.fillStyle=ac;
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      ctx.fillText(`${bars} bars · ${td}`,(x1+x2)/2,Math.max(y1,y2)+3);
+      ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.fillText(`${up?'+':''}${pd.toFixed(5)} (${up?'+':''}${pct}%)`,Math.max(x1,x2)+4,(y1+y2)/2);
+    }
+
+    else if (d.type==='pencil') {
+      if (!d.points||d.points.length<2){ctx.restore();return;}
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]);
+      ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.beginPath();
+      let started=false;
+      for (const pt of d.points) {
+        const x=timeToX(pt.time),y=priceToY(pt.price);
+        if (x==null||y==null){started=false;continue;}
+        if (!started){ctx.moveTo(x,y);started=true;}
+        else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function _lbl(ctx,txt,x,y,col,align,fs) {
+    ctx.save(); ctx.font=`${fs||9}px "Share Tech Mono",monospace`;
+    ctx.fillStyle=col; ctx.textAlign=align||'left'; ctx.textBaseline='bottom';
+    ctx.fillText(txt,x,y-2); ctx.restore();
+  }
+
+  (function raf(){redrawAll();requestAnimationFrame(raf);})();
+
+  /* ---- Pointer-events ---- */
+  function setCap(on,cur) {
+    drawCanvas.style.pointerEvents=on?'all':'none';
+    drawCanvas.style.cursor=cur||'default';
+  }
+
+  /* ---- Tool buttons ---- */
+  const drawToolBtns = document.querySelectorAll('.drawTool');
+  function deactivateTool() {
+    pencilDrawing=false; pencilPoints=[];
+    activeTool=null; clickCount=0; firstClickPos=null; previewShape=null;
+    channelStep=0; channelBase=null; magnetDot=null; cursorPos=null;
+    drawToolBtns.forEach(b=>b.classList.remove('active'));
+    setCap(false);
+  }
+  drawToolBtns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const t=btn.dataset.tool;
+      if (activeTool===t){deactivateTool();return;}
+      activeTool=t; clickCount=0; firstClickPos=null; previewShape=null; channelStep=0; channelBase=null;
+      drawToolBtns.forEach(b=>b.classList.toggle('active',b.dataset.tool===t));
+      setCap(true,'crosshair');
+    });
+  });
+
+  const magnetToggle = document.getElementById('magnetToggle');
+  magnetToggle.classList.add('active');
+  magnetToggle.addEventListener('click',()=>{
+    magnetOn=!magnetOn; magnetToggle.classList.toggle('active',magnetOn);
+  });
+
+  document.getElementById('clearDrawings').addEventListener('click',()=>{
+    drawings=[];saveDrawings();previewShape=null;updateObjTree();
+  });
+
+  window.addEventListener('keydown',e=>{
+    if (e.key==='Escape'){deactivateTool();hideCtx();}
+    if ((e.key==='z'||e.key==='Z')&&(e.ctrlKey||e.metaKey)&&!activeTool) {
+      e.preventDefault();
+      if (undoStack.length) { drawings=undoStack.pop(); saveDrawings(); updateObjTree(); }
+      return;
+    }
+    if ((e.key==='Delete'||e.key==='Backspace')&&!activeTool&&
+        !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){
+      pushUndo();drawings.pop();saveDrawings();updateObjTree();
+    }
+  });
+
+  /* ---- Mouse: preview + hover + magnet dot ---- */
+  chartWrap.addEventListener('mousemove',e=>{
+    const raw=rawPos(e);
+    if (activeTool) {
+      if (activeTool==='pencil') {
+        cursorPos={x:raw.x,y:raw.y};
+        if (pencilDrawing) {
+          const anc={time:xToTime(raw.x),price:yToPrice(raw.y)};
+          if (anc.time!=null&&anc.price!=null) {
+            const last=pencilPoints[pencilPoints.length-1];
+            const lx=last?timeToX(last.time):null, ly=last?priceToY(last.price):null;
+            if (!last||lx==null||Math.hypot(raw.x-lx,raw.y-ly)>3) pencilPoints.push(anc);
+            previewShape={type:'pencil',points:pencilPoints,color:TOOL_COLORS.pencil,lineWidth:1.5};
+          }
+        }
+        return;
+      }
+      const s=snapMagnet(raw.x,raw.y);
+      magnetDot=s.hit?{x:s.x,y:s.y}:null;
+      cursorPos={x:s.x,y:s.y};
+      const anc={x:s.x,y:s.y,price:yToPrice(s.y),time:xToTime(s.x)};
+      if (anc.price==null||anc.time==null) return;
+      const col=TOOL_COLORS[activeTool];
+      if (activeTool==='hline') {
+        previewShape={type:'hline',price:anc.price,color:TOOL_COLORS.hline,lineWidth:1.5}; return;
+      }
+      if (activeTool==='channel'&&channelStep===1&&channelBase) {
+        const off=anc.price-basePriceAt(channelBase,anc.time);
+        previewShape={type:'channel',...channelBase,priceOffset:off,color:TOOL_COLORS.channel}; return;
+      }
+      if (clickCount===1&&firstClickPos) {
+        if      (activeTool==='ray')       previewShape={type:'ray',      time1:firstClickPos.time,price1:firstClickPos.price,time2:anc.time,price2:anc.price,color:col};
+        else if (activeTool==='trendline') previewShape={type:'trendline',time1:firstClickPos.time,price1:firstClickPos.price,time2:anc.time,price2:anc.price,color:col};
+        else if (activeTool==='rect')      previewShape={type:'rect',     time1:firstClickPos.time,price1:firstClickPos.price,time2:anc.time,price2:anc.price,color:col};
+        else if (activeTool==='fib')       previewShape={type:'fib',      time1:firstClickPos.time,price1:firstClickPos.price,time2:anc.time,price2:anc.price,color:col};
+        else if (activeTool==='vp') { const lastT=currentCandles.length?currentCandles[currentCandles.length-1].time:anc.time; previewShape={type:'vp',time1:firstClickPos.time,price1:firstClickPos.price,time2:Math.min(anc.time,lastT),price2:anc.price,color:col}; }
+        else if (activeTool==='measure')   previewShape={type:'measure',  time1:firstClickPos.time,price1:firstClickPos.price,time2:anc.time,price2:anc.price,color:col};
+        else if (activeTool==='channel')   previewShape={type:'trendline',time1:firstClickPos.time,price1:firstClickPos.price,time2:anc.time,price2:anc.price,color:TOOL_COLORS.channel};
+      }
+      return;
+    }
+    magnetDot=null;
+    if (dragMode) return;
+    let idx=hitTest(raw.x,raw.y);
+    if (idx<0&&hoverXPos&&hoverIndex>=0&&Math.hypot(raw.x-hoverXPos.cx,raw.y-hoverXPos.cy)<20) {
+      idx=hoverIndex;
+    }
+    if (idx!==hoverIndex) { hoverIndex=idx; }
+    if (idx>=0) {
+      const ep=getEndpointHit(raw.x,raw.y,drawings[idx]);
+      if (ep!==hoverEP) hoverEP=ep;
+      setCap(true, ep!=null?'crosshair':'move');
+    } else {
+      hoverEP=null;
+      setCap(false);
+    }
+  });
+
+  /* ---- Click: commit drawing ---- */
+  chartWrap.addEventListener('click',e=>{
+    // Shift+click: activate measure and place first point in one action
+    if (e.shiftKey&&!activeTool&&!dragMode) {
+      activeTool='measure'; clickCount=0; firstClickPos=null; previewShape=null;
+      drawToolBtns.forEach(b=>b.classList.toggle('active',b.dataset.tool==='measure'));
+      setCap(true,'crosshair');
+    }
+    if (!activeTool||dragMode) return;
+    hideCtx();
+    const raw=rawPos(e);
+    const s=snapMagnet(raw.x,raw.y);
+    const anc={price:yToPrice(s.y),time:xToTime(s.x)};
+    if (anc.price==null||anc.time==null) return;
+    const mk=(t,extra)=>({type:t,...extra,color:TOOL_COLORS[t]||TOOL_COLORS.hline,lineWidth:1.5,visible:true});
+    if (activeTool==='hline') {
+      pushUndo();drawings.push(mk('hline',{price:anc.price}));
+      saveDrawings();previewShape=null;updateObjTree();return;
+    }
+    if (activeTool==='channel'&&channelStep===1) {
+      const off=anc.price-basePriceAt(channelBase,anc.time);
+      drawings.push(mk('channel',{...channelBase,priceOffset:off}));
+      saveDrawings();previewShape=null;channelBase=null;channelStep=0;clickCount=0;firstClickPos=null;updateObjTree();return;
+    }
+    if (clickCount===0){firstClickPos=anc;clickCount=1;return;}
+    if (activeTool==='channel') {
+      channelBase={time1:firstClickPos.time,price1:firstClickPos.price,time2:anc.time,price2:anc.price};
+      channelStep=1;clickCount=0;firstClickPos=null;previewShape=null;return;
+    }
+    let t2=anc.time,p2=anc.price;
+    if (activeTool==='vp'&&currentCandles.length) t2=Math.min(t2,currentCandles[currentCandles.length-1].time);
+    const base={time1:firstClickPos.time,price1:firstClickPos.price,time2:t2,price2:p2};
+    pushUndo();drawings.push({type:activeTool,...base,color:TOOL_COLORS[activeTool],lineWidth:1.5,visible:true});
+    saveDrawings();previewShape=null;clickCount=0;firstClickPos=null;updateObjTree();
+  });
+
+  /* ---- Drag / move ---- */
+  drawCanvas.addEventListener('mousedown',e=>{
+    if (e.button!==0) return;
+    if (activeTool==='pencil') {
+      pencilDrawing=true; pencilPoints=[];
+      const raw=rawPos(e);
+      const anc={time:xToTime(raw.x),price:yToPrice(raw.y)};
+      if (anc.time!=null&&anc.price!=null) pencilPoints.push(anc);
+      e.stopPropagation(); return;
+    }
+    if (activeTool) return;
+    const raw=rawPos(e);
+    if (hoverXPos&&hoverIndex>=0&&Math.hypot(raw.x-hoverXPos.cx,raw.y-hoverXPos.cy)<14) {
+      pushUndo();drawings.splice(hoverIndex,1);hoverIndex=-1;hoverXPos=null;saveDrawings();updateObjTree();
+      e.stopPropagation();return;
+    }
+    const idx=hitTest(raw.x,raw.y); if (idx<0) return;
+    dragEndpoint=getEndpointHit(raw.x,raw.y,drawings[idx]);
+    if ((drawings[idx].type==='vp'||drawings[idx].type==='channel')&&dragEndpoint===null) return; // endpoints only
+    dragMode=true;dragIndex=idx;dragStartRaw=raw;dragOrigDraw=JSON.parse(JSON.stringify(drawings[idx]));
+    e.stopPropagation();
+  });
+  window.addEventListener('mousemove',e=>{
+    if (!dragMode) return;
+    const raw=rawPos(e),d=drawings[dragIndex],orig=dragOrigDraw;
+    if (dragEndpoint!==null) {
+      // Endpoint drag: full magnet snap to nearest OHLC
+      const s=snapMagnet(raw.x,raw.y);
+      magnetDot=s.hit?{x:s.x,y:s.y}:null;
+      const np=yToPrice(s.y),nt=xToTime(s.x);
+      if (dragEndpoint===1) {
+        if (d.type==='hline'){if(np!=null)d.price=np;}
+        else {
+          if(np!=null)d.price1=np;
+          if(nt!=null){
+            d.time1=nt;
+            if(d.type==='vp'&&currentCandles.length)
+              d.time1=Math.max(currentCandles[0].time,Math.min(currentCandles[currentCandles.length-1].time,d.time1));
+          }
+        }
+      } else if (dragEndpoint===2) {
+        if(np!=null)d.price2=np;
+        if(nt!=null){
+          d.time2=nt;
+          if(d.type==='vp'&&currentCandles.length)
+            d.time2=Math.max(currentCandles[0].time,Math.min(currentCandles[currentCandles.length-1].time,d.time2));
+        }
+      } else if (dragEndpoint===3) {
+        // Channel bottom midpoint — slide the parallel line up/down
+        if(np!=null) d.priceOffset=np-basePriceAt(orig,(orig.time1+orig.time2)/2);
+      }
+    } else {
+      magnetDot=null;
+      const p0=yToPrice(dragStartRaw.y),p1=yToPrice(raw.y),dp=(p0!=null&&p1!=null)?p1-p0:0;
+      const t0=xToTime(dragStartRaw.x),t1=xToTime(raw.x),dt=(t0!=null&&t1!=null)?t1-t0:0;
+      if (d.type==='hline') d.price=orig.price+dp;
+      else if (d.type==='pencil'&&d.points) {
+        d.points=orig.points.map(pt=>({time:pt.time+dt,price:pt.price+dp}));
+      }
+      else{d.price1=orig.price1+dp;d.price2=orig.price2+dp;d.time1=orig.time1+dt;d.time2=orig.time2+dt;}
+    }
+  });
+  window.addEventListener('mouseup',()=>{
+    if (activeTool==='pencil'&&pencilDrawing) {
+      pencilDrawing=false;
+      if (pencilPoints.length>=2) {
+        pushUndo();
+        drawings.push({type:'pencil',points:[...pencilPoints],color:TOOL_COLORS.pencil,lineWidth:1.5,visible:true});
+        saveDrawings();updateObjTree();
+      }
+      pencilPoints=[];previewShape=null;
+      return;
+    }
+    if (!dragMode) return;
+    pushUndo();saveDrawings();updateObjTree();
+    dragMode=false;dragIndex=-1;dragStartRaw=null;dragOrigDraw=null;dragEndpoint=null;magnetDot=null;
+  });
+
+  /* ---- Right-click: context menu ---- */
+  chartWrap.addEventListener('contextmenu',e=>{
+    e.preventDefault();
+    if (activeTool){deactivateTool();return;}   // right-click always exits tool mode
+    const raw=rawPos(e), idx=hitTest(raw.x,raw.y);
+    if (idx>=0) showCtx(idx,e.clientX,e.clientY); else hideCtx();
+  });
+
+  /* ---- Context menu ---- */
+  const drawCtxEl=document.getElementById('drawCtx');
+  function showCtx(idx,cx,cy) {
+    ctxTarget=idx; const d=drawings[idx];
+    document.getElementById('ctxTypeLabel').textContent=drawingLabel(d).toUpperCase();
+    document.getElementById('ctxWidth').value=dv(d,'lineWidth',1.5);
+    document.getElementById('ctxWidthVal').textContent=dv(d,'lineWidth',1.5)+'px';
+    document.getElementById('ctxText').value=dv(d,'text','');
+    document.getElementById('ctxFontSize').value=dv(d,'fontSize',9);
+    document.getElementById('ctxFontVal').textContent=dv(d,'fontSize',9)+'px';
+    document.getElementById('ctxFill').value=dv(d,'fillOpacity',0.12);
+    document.getElementById('ctxFillVal').textContent=Math.round(dv(d,'fillOpacity',0.12)*100)+'%';
+    document.getElementById('ctxFillRow').style.display=d.type==='rect'?'flex':'none';
+    document.querySelectorAll('#ctxColors .swatch').forEach(sw=>sw.classList.toggle('active',sw.dataset.color===d.color));
+    document.querySelectorAll('#ctxAligns button').forEach(b=>b.classList.toggle('active',b.dataset.align===dv(d,'textAlign','right')));
+    drawCtxEl.style.left=Math.min(cx,window.innerWidth-230)+'px';
+    drawCtxEl.style.top =Math.min(cy,window.innerHeight-270)+'px';
+    drawCtxEl.style.display='block';
+    renderTplList();
+  }
+  function hideCtx(){drawCtxEl.style.display='none';ctxTarget=-1;}
+  function ctxApply(k,v){if (ctxTarget>=0){drawings[ctxTarget][k]=v;saveDrawings();}}
+
+  document.getElementById('ctxWidth').addEventListener('input',function(){
+    document.getElementById('ctxWidthVal').textContent=this.value+'px'; ctxApply('lineWidth',parseFloat(this.value));
+  });
+  document.getElementById('ctxFill').addEventListener('input',function(){
+    document.getElementById('ctxFillVal').textContent=Math.round(this.value*100)+'%'; ctxApply('fillOpacity',parseFloat(this.value));
+  });
+  document.getElementById('ctxText').addEventListener('input',function(){ctxApply('text',this.value);});
+  document.getElementById('ctxFontSize').addEventListener('input',function(){
+    document.getElementById('ctxFontVal').textContent=this.value+'px'; ctxApply('fontSize',parseInt(this.value));
+  });
+  document.getElementById('ctxDelete').addEventListener('click',()=>{
+    if (ctxTarget>=0){drawings.splice(ctxTarget,1);saveDrawings();updateObjTree();}hideCtx();
+  });
+  document.querySelectorAll('#ctxColors .swatch').forEach(sw=>{
+    sw.addEventListener('click',()=>{
+      ctxApply('color',sw.dataset.color);
+      document.querySelectorAll('#ctxColors .swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active');
+    });
+  });
+  document.querySelectorAll('#ctxAligns button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      ctxApply('textAlign',btn.dataset.align);
+      document.querySelectorAll('#ctxAligns button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  document.addEventListener('click',e=>{
+    if (!drawCtxEl.contains(e.target)&&!e.target.classList.contains('drawTool')) hideCtx();
+  });
+
+  /* ---- Drawing templates ---- */
+  const TPL_KEY='chevDrawTemplates';
+  function loadTemplates(){try{return JSON.parse(localStorage.getItem(TPL_KEY)||'[]');}catch(e){return[];}}
+  function saveTemplates(t){localStorage.setItem(TPL_KEY,JSON.stringify(t));}
+  function renderTplList(){
+    const list=document.getElementById('ctxTplList'); if(!list) return;
+    const tpls=loadTemplates();
+    if(!tpls.length){list.innerHTML='<span style="color:#5d6068;font-size:9px;">No templates yet</span>';return;}
+    list.innerHTML=tpls.map((t,i)=>`
+      <span style="display:inline-flex;align-items:center;gap:2px;background:#1e222d;border:1px solid #2a2e39;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:9px;color:#d1d4dc;" data-tpl="${i}">
+        <span style="width:8px;height:8px;border-radius:50%;background:${t.color};display:inline-block;flex-shrink:0;"></span>
+        ${t.name}
+        <span class="tplDel" data-tpl="${i}" style="color:#5d6068;margin-left:2px;cursor:pointer;">✕</span>
+      </span>`).join('');
+    list.querySelectorAll('[data-tpl]').forEach(el=>{
+      if(el.classList.contains('tplDel')) return;
+      el.addEventListener('click',()=>{
+        const tpl=loadTemplates()[+el.dataset.tpl]; if(!tpl||ctxTarget<0) return;
+        Object.assign(drawings[ctxTarget],{
+          color:tpl.color, lineWidth:tpl.lineWidth, text:tpl.text,
+          textAlign:tpl.textAlign, fontSize:tpl.fontSize,
+        });
+        saveDrawings(); showCtx(ctxTarget, drawCtxEl.offsetLeft, drawCtxEl.offsetTop);
+      });
+    });
+    list.querySelectorAll('.tplDel').forEach(el=>{
+      el.addEventListener('click',e=>{
+        e.stopPropagation();
+        const tpls=loadTemplates(); tpls.splice(+el.dataset.tpl,1); saveTemplates(tpls); renderTplList();
+      });
+    });
+  }
+  document.getElementById('ctxTplSave').addEventListener('click',()=>{
+    if(ctxTarget<0) return;
+    const name=document.getElementById('ctxTplName').value.trim()||'Template';
+    const d=drawings[ctxTarget];
+    const tpl={name, color:d.color||'#9598a1', lineWidth:dv(d,'lineWidth',1.5),
+      text:dv(d,'text',''), textAlign:dv(d,'textAlign','right'), fontSize:dv(d,'fontSize',9)};
+    const tpls=loadTemplates(); tpls.push(tpl); saveTemplates(tpls);
+    document.getElementById('ctxTplName').value=''; renderTplList();
+  });
+
+  /* ---- Object tree ---- */
+  const objTreeEl=document.getElementById('objectTree');
+  document.getElementById('objectTreeToggle').addEventListener('click',()=>objTreeEl.classList.toggle('open'));
+  document.getElementById('objClose').addEventListener('click',()=>objTreeEl.classList.remove('open'));
+
+  function drawingLabel(d) {
+    const labels={hline:'H.Line',ray:'Ray',trendline:'Trendline',rect:'Rectangle',fib:'Fibonacci',channel:'Channel',vp:'Vol Profile',measure:'Measure',pencil:'Pencil'};
+    const base=labels[d.type]||d.type;
+    if (d.type==='hline'&&d.price) return base+' @ '+d.price.toFixed(4);
+    if (d.text) return base+': '+d.text.slice(0,16);
+    return base;
+  }
+
+  function updateObjTree() {
+    const list=document.getElementById('objectList');
+    if (!list) return;
+    if (!drawings.length){list.innerHTML='<div style="padding:10px;color:#5d6068;font-size:11px;">No drawings yet.</div>';return;}
+    list.innerHTML=drawings.map((d,i)=>`
+      <div class="objRow" data-i="${i}">
+        <span class="objColor" style="background:${d.color||'#fff'}"></span>
+        <span class="objLabel">${drawingLabel(d)}</span>
+        <button class="objEye" data-i="${i}">${d.visible===false?'🚫':'👁'}</button>
+        <button class="objDel" data-i="${i}">✕</button>
+      </div>`).join('');
+    list.querySelectorAll('.objEye').forEach(btn=>btn.addEventListener('click',e=>{
+      e.stopPropagation();const i=+btn.dataset.i;
+      drawings[i].visible=drawings[i].visible===false;saveDrawings();updateObjTree();
+    }));
+    list.querySelectorAll('.objDel').forEach(btn=>btn.addEventListener('click',e=>{
+      e.stopPropagation();drawings.splice(+btn.dataset.i,1);saveDrawings();updateObjTree();
+    }));
+  }
+  updateObjTree();
+
+  /* ---- Twemoji: replace all emoji text with crisp SVGs ---- */
+  if (window.twemoji) {
+    const _twOpts = { folder: 'svg', ext: '.svg' };
+    const _tw = (el) => twemoji.parse(el, _twOpts);
+    // Auto-parse any new DOM content (dynamic trade logs, watchlist, chat, etc.)
+    let _twBusy = false;
+    new MutationObserver((mutations) => {
+      if (_twBusy) return;
+      _twBusy = true;
+      for (const m of mutations) {
+        for (const n of m.addedNodes) {
+          if (n.nodeType === 1 && !(n.tagName === 'IMG' && n.classList.contains('emoji'))) _tw(n);
+        }
+      }
+      _twBusy = false;
+    }).observe(document.body, { childList: true, subtree: true });
+    // Parse everything already on the page
+    _tw(document.body);
+  }
+</script>
+
+</body>
+</html>
