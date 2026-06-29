@@ -439,8 +439,8 @@
 
 <!-- ─── Balance cards row ─────────────────────────────────────── -->
 <div style="display:flex; gap:8px; margin: 12px 12px 0;">
-  <div class="balance-card" style="margin:0; flex:1">
-    <div class="balance-label">Chev Balance</div>
+  <div class="balance-card" style="margin:0; flex:1; border-color:rgba(255,255,255,.25);">
+    <div class="balance-label" style="color:var(--gold)">Chev Balance</div>
     <div class="balance-amount" id="balanceAmt">—</div>
     <div class="pnl-row">
       <div class="pnl-label">Open PnL</div>
@@ -449,31 +449,43 @@
   </div>
   <div class="balance-card" style="margin:0; flex:1; border-color:rgba(212,175,55,.35);">
     <div class="balance-label" style="color:var(--gold)">Jane Balance</div>
-    <div class="balance-amount" id="janeBalanceAmt" style="font-size:22px">—</div>
+    <div class="balance-amount" id="janeBalanceAmt">—</div>
     <div class="pnl-row">
       <div class="pnl-label">Open PnL</div>
       <div class="pnl-value flat" id="janeOpenPnl">—</div>
     </div>
-    <div class="pnl-row">
-      <div class="pnl-label">W / L</div>
-      <div class="pnl-value flat" id="janeWinLoss">—</div>
-    </div>
   </div>
 </div>
 
-<!-- ─── Chev Stats ────────────────────────────────────────────── -->
-<div class="stats-bar">
-  <div class="stat-pill">
-    <div class="stat-pill-label">Win Rate</div>
-    <div class="stat-pill-value" id="winRate">—</div>
+<!-- ─── Stats row: Chev left | Jane right ────────────────────── -->
+<div style="display:flex; gap:8px; margin: 8px 12px 0;">
+  <div class="stats-bar" style="flex:1; margin:0;">
+    <div class="stat-pill">
+      <div class="stat-pill-label">Win Rate</div>
+      <div class="stat-pill-value" id="winRate">—</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Wins</div>
+      <div class="stat-pill-value win" id="totalWins">—</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Losses</div>
+      <div class="stat-pill-value loss" id="totalLosses">—</div>
+    </div>
   </div>
-  <div class="stat-pill">
-    <div class="stat-pill-label">Wins</div>
-    <div class="stat-pill-value win" id="totalWins">—</div>
-  </div>
-  <div class="stat-pill">
-    <div class="stat-pill-label">Losses</div>
-    <div class="stat-pill-value loss" id="totalLosses">—</div>
+  <div class="stats-bar" style="flex:1; margin:0;">
+    <div class="stat-pill" style="border-color:rgba(212,175,55,.25);">
+      <div class="stat-pill-label" style="color:var(--gold)">Win Rate</div>
+      <div class="stat-pill-value" id="janeWinRate">—</div>
+    </div>
+    <div class="stat-pill" style="border-color:rgba(212,175,55,.25);">
+      <div class="stat-pill-label" style="color:var(--gold)">Wins</div>
+      <div class="stat-pill-value win" id="janeWins">—</div>
+    </div>
+    <div class="stat-pill" style="border-color:rgba(212,175,55,.25);">
+      <div class="stat-pill-label" style="color:var(--gold)">Losses</div>
+      <div class="stat-pill-value loss" id="janeLosses">—</div>
+    </div>
   </div>
 </div>
 
@@ -746,7 +758,10 @@ function renderAll() {
     janeBal != null ? '$' + janeBal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
   const jw = state.jane_wins || 0;
   const jl = state.jane_losses || 0;
-  document.getElementById('janeWinLoss').textContent = `${jw}W / ${jl}L`;
+  const jwr = jw + jl > 0 ? Math.round(jw / (jw + jl) * 100) : 0;
+  document.getElementById('janeWinRate').textContent = jwr + '%';
+  document.getElementById('janeWins').textContent    = jw;
+  document.getElementById('janeLosses').textContent  = jl;
   const janeOpenTrades = (state.jane_trades || []).filter(t => t.status === 'OPEN');
   const janeOpenPnlVal = janeOpenTrades.reduce((s, t) => s + (t.live_pnl || 0), 0);
   const janeOpenPnlEl  = document.getElementById('janeOpenPnl');
